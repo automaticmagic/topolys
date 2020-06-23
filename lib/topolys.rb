@@ -3,57 +3,37 @@ require 'json'
 require 'securerandom'
 
 # TODO : start integrating warning logs à la raise from the get-go
-module TOPOLYS
+module Topolys
   ##
   # documentation TODO
-  module ID
-    # @return [String] unique TOPOLYS identifier
-    attr_reader :id
-
-    def initialize
-      @id = SecureRandom.uuid
-    end
-  end
-
   class D3
     attr_accessor :x, :y, :z
 
-    def initialize(x, y, z)
+    def initialize(x:0, y:0, z:0)
       @x, @y, @z = x, y, z
     end
 
     def ==(other)
-      other.class == self.class && other.state == state
-      #@x == other.x && @y == other.y && @z == other.z
+      other.id == id
     end
-
-    #def eql?(other)
-    #  self == other
-    #end
 
     alias_method :eql?, :==
 
     protected
 
-    def state
-      [@x, @y, @z]
+    def id
+      [@x, @y, @z, self.class]
     end
 
     def hash
-      state.hash
+      id.hash
     end
   end
 
   #p D3.new(1, 2, 3) == D3.new(1, 2, 3)    # => true
   #p D3.new(1, 2, 3) == D3.new(1, 2, 4)    # => false
 
-
   class P3D < D3 # 3D point
-    include ID
-  #include D3
-
-    # @return [Float] X,Y or Z coordinates
-    #attr_reader :x, :y, :z
 
     # @return [Hash] linked E3D objects
     attr_reader :edges
