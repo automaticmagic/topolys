@@ -1,11 +1,32 @@
+# rspec failure tracking
+.rspec_status
+
 /.bundle/
 /.yardoc
 /_yardoc/
+/.ruby-version
+/Gemfile.lock
+/gems
 /coverage/
 /doc/
+/html/
 /pkg/
 /spec/reports/
+/spec/test/
+/spec/files/*/
 /tmp/
+/test/
+/lib/.rubocop*
 
 # rspec failure tracking
 .rspec_status
+
+# Ignore IDE files
+/.idea
+*.rubocop-http*
+
+# runner conf
+runner.conf
+
+# .DS_Store (Mac)
+*.DS_Store
