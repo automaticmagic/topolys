@@ -1,10 +1,11 @@
 # Topolys
 
-Put your Ruby code in the file `lib/topolys`.
 To experiment with that code, ...
 run `bin/console` for an interactive prompt.
 
-TODO: Description of Topolys
+## Description
+
+TODO ...
 
 ## Installation
 
@@ -34,7 +35,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/topolys.
+Bug reports and pull requests are welcome on GitHub at https://github.com/rd2Bourgeois/topolys.
 
 ## License
 
