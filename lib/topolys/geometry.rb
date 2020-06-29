@@ -3,82 +3,21 @@ module Topolys
   # Point3D, Vector3D, and Plane3D represents the 3D position and orientation
   # of geometry in Topolys.  Geometry is separate from topology (connections).
 
-  class D3 # superclass to other 3D geometry Topolys objects having XYZ coordinates
-    # @return [Float] XY or Z coordinate
-    attr_accessor :x, :y, :z
-
-    ##
-    # Initializes a D3 object
-    #
-    # @param [Float] X-coordinate
-    # @param [Float] Y-coordinate
-    # @param [Float] Z-coordinate
-    def initialize(x, y, z, tol:nil)
-      @x, @y, @z = x, y, z
-      
-      if !tol.is_a?(Numeric)
-        tol = 0.01
-      end
-      @tol = tol
-      @tol2 = @tol**2
-    end
-
-    ##
-    # Returns D3 tolerance when comparing points
-    #
-    # @param [Float] D3 tolerance
-    def tol
-      @tol
-    end
-
-    ##
-    # Returns D3 tolerance (squared) when comparing points
-    #
-    # @param [Float] D3 tolerance (squared)
-    def tol2
-      @tol2
-    end
-
-    ##
-    # Overrides equality operator, based on value
-    #
-    # @param [D3] other Another D3 object (or derivative)
-    def ==(other)
-      return false unless other && other.is_a?(Topolys::D3)
-      return false unless self.class == other.class
-      tol = [@tol, other.tol].min
-      
-      # DLM: note this is a L1 norm test, e.g. a cube
-      # I had been using L2 norm test, e.g. a sphere
-      return false if (@x - other.x).abs > tol
-      return false if (@y - other.y).abs > tol
-      return false if (@z - other.z).abs > tol
-      return true
-    end
-
-    alias_method :eql?, :==
-
-    protected
-
-    def id
-      [@x, @y, @z, self.class]
-    end
-
-    def hash
-      id.hash
-    end
-  end
-
-  class Point3D < D3 # 3D point
-
+  class Point3D 
+  
+    # @return [Float] X, Y, or Z coordinate
+    attr_reader :x, :y, :z
+    
     ##
     # Initializes a Point3D object
     #
     # @param [Float] X-coordinate
     # @param [Float] Y-coordinate
     # @param [Float] Z-coordinate
-    def initialize(x, y, z, tol:nil)
-      super
+    def initialize(x, y, z)
+      @x = x
+      @y = y
+      @z = z
     end
 
     ##
@@ -86,26 +25,32 @@ module Topolys
     #
     # @param [Point3D] other Another 3D point
     #
-    # @return [Vector3D] Returns a new 3D vector - nil if other not a P3D point
+    # @return [Vector3D] Returns a new Vector3D - nil if other not a Point3D
     def -(other)
       return nil unless other && other.is_a?(Topolys::Point3D)
-      x = other.x - @x
-      y = other.y - @y
-      z = other.z - @z
-      tol = [@tol, other.tol].min
-      return Topolys::V3D.new(x, y, z, tol)
+      x = @x - other.x
+      y = @y - other.y
+      z = @z - other.z
+      return Topolys::Vector3D.new(x, y, z)
     end
-  end # P3D
+    
+  end # Point3D
 
-  class Vector3D < D3 # 3D vector
+  class Vector3D
+      
+    # @return [Float] X, Y, or Z component
+    attr_reader :x, :y, :z
+    
     ##
     # Initializes a Vector3D object
     #
     # @param [Float] X-coordinate
     # @param [Float] Y-coordinate
     # @param [Float] Z-coordinate
-    def initialize(x, y, z, tol:nil)
-      super
+    def initialize(x, y, z)
+      @x = x
+      @y = y
+      @z = z
     end
 
     ##
@@ -119,8 +64,7 @@ module Topolys
       x = @x + other.x
       y = @y + other.y
       z = @z + other.z
-      tol = [@tol, other.tol].min
-      return Topolys::Vector3D.new(x, y, z, tol)
+      return Topolys::Vector3D.new(x, y, z)
     end
 
     ##
@@ -135,7 +79,6 @@ module Topolys
       x = @x - other.x
       y = @y - other.y
       z = @z - other.z
-      tol = [@tol, other.tol].min
       return Topolys::Vector3D.new(x, y, z)
     end
 
@@ -150,7 +93,7 @@ module Topolys
       x = @x * scalar
       y = @y * scalar
       z = @z * scalar
-      return Topolys::Vector3D.new(x, y, z, @tol)
+      return Topolys::Vector3D.new(x, y, z)
     end
 
     ##
@@ -165,7 +108,7 @@ module Topolys
       x = @x / scalar
       y = @y / scalar
       z = @z / scalar
-      Topolys::Vector3D.new(x, y, z, @tol)
+      Topolys::Vector3D.new(x, y, z)
     end
 
     ##
@@ -209,8 +152,7 @@ module Topolys
       x = @y * other.z - @z * other.y
       y = @z * other.x - @x * other.z
       z = @y * other.y - @y * other.x
-      tol = [@tol, other.tol].min
-      return Topolys::Vector3D.new(x, y, z, tol)
+      return Topolys::Vector3D.new(x, y, z)
     end
 
     ##
@@ -228,7 +170,7 @@ module Topolys
 
   end # Vector3D
 
-  class Plane3D < D3 # 3D plane
+  class Plane3D
 
     ##
     # Initializes a Plane3D object from three non-colinear points
@@ -236,8 +178,8 @@ module Topolys
     # @param [Point3d] point1
     # @param [Point3d] point2
     # @param [Point3d] point3
-    def initialize(point1, point2, point3, tol:nil)
-      super(point1.x, point1.y, point1.z, tol)
+    def initialize(point1, point2, point3)
+      super(point1.x, point1.y, point1.z)
     end
 
     ##
@@ -246,8 +188,8 @@ module Topolys
     # @param [Point3d] point1
     # @param [Vector3D] xaxis
     # @param [Vector3D] yaxis
-    def initialize(point1, xaxis, yaxis, tol:nil)
-      super(point1.x, point1.y, point1.z, tol)
+    def initialize(point1, xaxis, yaxis)
+      super(point1.x, point1.y, point1.z)
     end
     
     # TODO: implement methods below
@@ -268,7 +210,7 @@ module Topolys
     # @param [Point3d] point
     #
     # @return [Boolean] Returns true if the point is on this plane, false otherwise
-    def point_on_plane(point)
+    def point_on_plane(point, tol)
       point == project(point)
     end
 

@@ -1,5 +1,6 @@
 require "topolys/version"
 require 'json'
+require 'securerandom'
 
 # Topology represents connections between geometry in a model.
 #
@@ -30,7 +31,7 @@ module Topolys
     attr_accessor :vertices, :edges, :wires, :faces, :shells, :cells
     attr_accessor :tol, :tol2
     
-    def initialize(tol:nil)
+    def initialize(tol=nil)
       
       # changing tolerance on a model after construction would be very complicated
       # you would have to go through and regroup points, etc
@@ -59,15 +60,23 @@ module Topolys
     
     # @param [Vertex] v0
     # @param [Vertex] v1
-    # @return [EdgeView] EdgeView
-    def get_edge_view(v0, v1)
-      # search for edge and return a view (includes direction) if it exists
-      # otherwise create new edge and return a view
+    # @return [Edge] Edge
+    def get_edge(v0, v1)
+      # search for edge and return if it exists
+      # otherwise create new edge
     end
     
-    # @param [Array] vertices Array of Vertex
-    # @return [WireView] WireView
-    def get_wire_view(edges)
+    # @param [Vertex] v0
+    # @param [Vertex] v1
+    # @return [DirectedEdge] DirectedEdge
+    def get_directed_edge(v0, v1)
+      # search for directed edge and return if it exists
+      # otherwise create new directed edge
+    end
+    
+    # @param [Array] vertices Array of Vertex, assumes closed wire
+    # @return [Wire] Wire
+    def get_wire(vertices)
       # search for wire and return a view (includes starting point) if exists 
       # otherwise create new wire
     end
@@ -77,54 +86,75 @@ module Topolys
   class Object
     
     # @return [-] attribute linked to a pre-speficied key (e.g. keyword)
-    attr_accessor :attribute  # a [k,v] hash of properties required by a parent
-                              # app, but of no intrinsic utility to Topolys.
-                              # e.g. a thermal bridge PSI type
-                              #      "attribute[:bridge] = :balcony
-                              # e.g. air leakage crack type (ASHRAE Fund's)
-                              #      "attribute[:crack] = :sliding
-                              # e.g. LCA $ element type
-                              #      "attribute[$lca] = :parapet"
+    attr_accessor :attributes  # a [k,v] hash of properties required by a parent
+                               # app, but of no intrinsic utility to Topolys.
+                               # e.g. a thermal bridge PSI type
+                               #      "attribute[:bridge] = :balcony
+                               # e.g. air leakage crack type (ASHRAE Fund's)
+                               #      "attribute[:crack] = :sliding
+                               # e.g. LCA $ element type
+                               #      "attribute[$lca] = :parapet"
+                              
+    attr_reader :id
+    
+    attr_reader :parents
 
     def initialize
-      @attribute = {}
+      @attributes = {}
+      @id = SecureRandom.uuid
+      @parents = {}
+    end
+    
+    def hash
+      @id
+    end
+    
+    def parent_class
+      NilClass
+    end
+    
+    ##
+    # Links a parent object
+    #
+    # @param [Object] object An object to link
+    def link(object)
+      if object && object.is_a?(parent_class)
+        @parents[object.id] = object
+      end
+    end
+
+    ##
+    # Unlinks a object object
+    #
+    # @param [Object] object An object to unlink
+    def unlink(object)
+      @edges.reject!{ |id, obj| id == object.id }
     end
     
   end # Object
 
   class Vertex < Object
+  
     # @return [Point3D] Point3D geometry
     attr_reader :point
-    
-    # @return [Hash] linked Edge objects
-    attr_reader :edges
 
     ##
     # Initializes a Vertex object, use Model.get_point instead
     #
+    # Throws if point is incorrect type
+    #
     # @param [Point3D] point
     def initialize(point)
-      @point = point
-      @edges = {}
       super
+      @point = point
     end
 
-    ##
-    # Links a E3D object
-    #
-    # @param [E3D] edge An edge to link
-    def link(edge)
-      if edge && edge.is_a?(Topolys::E3D)
-        @edges[edge] = edge.object_id unless @edges.key?(edge)
-      end
+    def parent_class
+      Edge
     end
-
-    ##
-    # Unlinks a E3D object
-    #
-    # @param [E3D] edge An edge to unlink
-    def unlink(edge)
-      @edges.reject!{ |e, id| e == edge }
+    
+    def edges
+      @parents
     end
 
   end # Vertex
@@ -136,79 +166,78 @@ module Topolys
     # @return [Vertex] the second vertex, the edge terminal point
     attr_reader :v1
     
-    # @return [Vector3D] a vector from v0 to v1
-    attr_reader :vector
-
-    # @return [Hash] collection of linked W3D
-    attr_reader :wires # << or rather ... ":faces" ?
-
+    # @return [Numeric] the length of this edge
+    attr_reader :length
+    
     ##
     # Initializes an Edge object, use Model.get_edge instead
+    #
+    # Throws if v0 or v1 are incorrect type or refer to same vertex
     #
     # @param [Vertex] v0 The origin Vertex
     # @param [Vertex] v1 The terminal Vertex
     def initialize(v0, v1)
+      super
+      
       # should catch if 'origin' or 'terminal' not P3D objects ...
       # should also catch if 'origin' or 'terminal' refer to same object
       # ... or are within tol of each other
       @v0 = v0
       @v1 = v1
-      @vector = @v1.point - @v0.point
 
       @v0.link(self)
       @v1.link(self)
+      
+      vector = @v1.point - @v0.point
+      @length = vector.magnitude
     end
-
-    ##
-    # Links a Wire object
-    #
-    # @param [Wire] wire A wire to link
-    def link(wire)
-      if wire && wire.is_a?(Topolys::Wire)
-        @wires[wire] = wire.object_id unless @wires.key?(wire)
-      end
+    
+    def parent_class
+      DirectedEdge
     end
-
-    ##
-    # Unlinks a Wire object
-    #
-    # @param [Wire] wire A wire to unlink
-    def unlink(wire)
-      @wires.reject!{ |w, id| w == wire }
+    
+    def forward_edge
+      @parents.first{|de| !de.inverted}
     end
-
-    protected
-
-    def id
-      [@v0, @v]
+    
+    def reverse_edge
+      @parents.first{|de| de.inverted}
     end
-
-    def hash
-      id.hash
-    end
-
+    
   end # Edge
   
-  class EdgeView
-    
-    # @return [Vertex] the initial vertex of this view, the edge origin
+  class DirectedEdge < Object
+  
+    # @return [Vertex] the initial vertex, the directed edge origin
     attr_reader :v0
 
-    # @return [Vertex] the second vertex of this view, the edge terminal point
+    # @return [Vertex] the second vertex, the directed edge terminal point
     attr_reader :v1
     
-    # @return [Vector3D] a vector from v0 to v1 in this view
-    attr_reader :vector
+    # @return [Edge] the edge this directed edge points to
+    attr_reader :edge
 
-    # @return [Edge] the underlying edge
-    attr_reader :edge 
+    # @return [Boolean] true if this is a forward directed edge, false otherwise
+    attr_reader :inverted
     
-    # @return [Boolean] true if savethe underlying edge
-    attr_reader :edge 
+    # @return [Numeric] the length of this edge
+    attr_reader :length
     
+    # @return [Vector3D] the vector of this directed edge
+    attr_reader :vector
+    
+    ##
+    # Initializes a DirectedEdge object, use Model.get_directed_edge instead
+    #
+    # Throws if edge or inverted are incorrect type
+    #
+    # @param [Edge] edge The underlying edge
+    # @param [Boolean] inverted True if this is a forward DirectedEdge, false otherwise
     def initialize(edge, inverted)
+      super
       @edge = edge
       @inverted = inverted
+      @edge.link(self)
       
       if inverted
         @v0 = edge.v1
@@ -219,47 +248,66 @@ module Topolys
       end
       
       @vector = @v1.point - @v0.point
+      @length = @vector.magnitude
     end
-  
-  end # EdgeView
+    
+    def parent_class
+      Wire
+    end
+    
+  end # DirectedEdge
 
   class Wire < Object
-    # @return [Array] array of linked edge/direction pairs, or 'directed edges'
-    #                 or 'dedges' (shorthand) ... see 'initialize'
-    attr_reader :dedges
-
-    # @return [Hash] collection of 1x or 2x linked faces ?
-    attr_reader :faces # << or would faces simply extend the W3D class ?
-
+  
+    # @return [Array] array of directed edges
+    attr_reader :directed_edges
+    
+    # @return [Plane3D] plane of this wire
+    attr_reader :plane
+    
+    # @return [Vector3D] outward normal of this wire's plane
+    attr_reader :outward_normal
+    
     ##
-    # Initializes a W3D object
+    # Initializes a Wire object
     #
-    def initialize(edges, edge_directions) # or 'initialize(dir_edges)'?
-      # instead of a separate array of edge 'directions' (1 or -1)
-      # ... would it be preferable to have 'edges' as a sequential array of
-      # hash k/v pairs describing each edge? e.g.
-      #
-      # k = (edge object itself) & v = (its direction: 1 or -1) ?, e.g.
-      # dedges.each do |edge, direction|
-      #  (check something, like validating vertex sequence )
-      # end
+    # Throws if directed_edges is incorrect type or if not sequential, not planar, or not closed
+    #
+    # @param [Edge] edge The underlying edge
+    # @param [Boolean] inverted True if this is a forward DirectedEdge, false otherwise    
+    def initialize(directed_edges) 
+      super
+      @directed_edges = directed_edges
+      
+      raise "Not sequential" if !sequential?
+      raise "Not closed" if !closed
+      
+      # compute plane from points
+      
 
-      @dedges = []
-      edges.each_index do |i|
-        e = edges[i]
-        d = edge_directions[i] # invalid if edges 'i' != edges_directions 'i'
-        dedge[e] = d
-        @dedges << dedge
-      end
-
-      @dedges.each do |e, direction|
-        e.link(self)
+      @directed_edges.each do |de|
+        de.link(self)
       end
     end
-
-    # TODO ... check if useful to override '==' operator based on value
-    # e.g. hash of sequential dedges
-
+    
+    def parent_class
+      Face
+    end
+    
+    ##
+    # @param [Boolean] include_last If true, return repeated last point for closed loops
+    # @return [Array] Array of Vertex
+    def vertices(include_last:false)
+ 
+    end
+    
+    ##
+    # @param [Boolean] include_last If true, return repeated last point for closed loops
+    # @return [Array] Arracy of Point3D
+    def points(include_last:false)
+ 
+    end
+    
     ##
     # Validates if directed edges are sequential
     #
@@ -274,7 +322,22 @@ module Topolys
       end
       return answer
     end
-
+    
+    ##
+    # Validates if directed edges are closed
+    #
+    # @return [Bool] Returns true if closed
+    def closed?
+      answer = false
+      @dedges.each do |edge, direction|
+        # e.g. check if first edge v0 == last edge v
+        #      check if each intermediate, nieghbouring v0 & v are equal
+        #      e.g. by relying on 'inverted?'
+        #      'answer = true' if all checks out
+      end
+      return answer
+    end
+    
     # TODO : deleting an edge, inserting a sequential edge, etc.
 
     ##
@@ -292,30 +355,25 @@ module Topolys
     def normal # TODO
       # from 2x edges (i.e. 3x vertices), generate a surface V3D normal ...
     end
-  end #W3D
+  end # Wire 
 
-  class F3D # Face - a collection of W3D objects
-
-    # @return [-] attribute linked to key (e.g. keyword, string)
-    attr_accessor :attribute  # a [k,v] hash of properties required by a parent
-                              # app, but of no intrinsic utility to Topolys.
-                              # e.g. OS surface type
-                              #      attribute[:type] = :shading
-                              # e.g. environmental conditions
-                              #      attribute[:facing] = :ground (or :air)
+  class Face < Object
 
     ##
-    # Initializes a F3D object
+    # Initializes a Wire object
     #
-    def initialize
+    # Throws if outer or holes are incorrect type or if holes have incorrect winding
+    #
+    # @param [Wire] outer The outer boundary
+    # @param [Array] holes Array of inner wires 
+    def initialize(outer, holes)
       # TODO
     end
 
-    # TODO ... check if useful to override '==' operator based on value
-    # e.g. hash of wires ?
-
-    def parent
-      # TODO : better to have an algorithm dynamically test and ID a parent?
+    def parent_class
+      NilClass
     end
-  end
+    
+  end # Face
+  
 end # TOPOLYS
