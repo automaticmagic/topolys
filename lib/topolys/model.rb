@@ -28,8 +28,8 @@ module Topolys
   # Topolys Objects should not be constructed directly, they should be retrieved using
   # the Topolys Model get_* object methods.
   class Model
-    attr_accessor :vertices, :edges, :wires, :faces, :shells, :cells
-    attr_accessor :tol, :tol2
+    attr_reader :vertices, :edges, :directed_edges, :wires, :faces, :shells, :cells
+    attr_reader :tol, :tol2
     
     def initialize(tol=nil)
       
@@ -43,19 +43,37 @@ module Topolys
 
       @vertices = []
       @edges = []
+      @directed_edges = []
       @wires = []
       @faces = []
       @shells = []
       @cells = []
     end
 
-    # @param [Numeric] x
-    # @param [Numeric] y
-    # @param [Numeric] z
+    # @param [Point3D] point
     # @return [Vertex] Vertex
-    def get_vertex(x, y, z)
-      # search for vertex and return if exists
+    def get_vertex(point)
+      # search for point and return corresponding vertex if it exists
       # otherwise create new vertex
+      @vertices.each do |v|
+        p = v.point
+        
+        ## L1 norm
+        #if ((p.x-point.x).abs < @tol) && 
+        #    (p.y-point.y).abs < @tol) &&
+        #    (p.z-point.z).abs < @tol))
+        #  return v
+        #end
+        
+        # L2 norm
+        if ((p.x-point.x)**2 + (p.y-point.y)**2 + (p.z-point.z)**2) < @tol2
+          return v
+        end
+      end
+      
+      v = Vertex.new(point)
+      @vertices << v
+      return v
     end
     
     # @param [Vertex] v0
@@ -64,6 +82,20 @@ module Topolys
     def get_edge(v0, v1)
       # search for edge and return if it exists
       # otherwise create new edge
+      
+      @edges.each do |e|
+        if (e.v0.id == v0.id) && (e.v1.id == v1.id)
+          return e
+        elsif (e.v0.id == v1.id) && (e.v1.id == v0.id)
+          return e
+        end
+      end
+      
+      @vertices << v0 if !@vertices.find {|v| v.id == v0.id}
+      @vertices << v1 if !@vertices.find {|v| v.id == v1.id}
+      edge = Edge.new(v0, v1)
+      @edges << edge
+      return edge
     end
     
     # @param [Vertex] v0
@@ -72,6 +104,23 @@ module Topolys
     def get_directed_edge(v0, v1)
       # search for directed edge and return if it exists
       # otherwise create new directed edge
+      
+      @directed_edges.each do |de|
+        if (de.v0.id == v0.id) && (de.v1.id == v1.id)
+          return de
+        end
+      end
+      
+      edge = get_edge(v0, v1)
+      
+      inverted = false
+      if (edge.v0.id != v0.id)
+        inverted = true
+      end
+      
+      directed_edge = DirectedEdge.new(edge, inverted)
+      @directed_edges << directed_edge
+      return directed_edge
     end
     
     # @param [Array] vertices Array of Vertex, assumes closed wire
@@ -102,7 +151,7 @@ module Topolys
     def initialize
       @attributes = {}
       @id = SecureRandom.uuid
-      @parents = {}
+      @parents = []
     end
     
     def hash
@@ -119,7 +168,7 @@ module Topolys
     # @param [Object] object An object to link
     def link(object)
       if object && object.is_a?(parent_class)
-        @parents[object.id] = object
+        @parents << object if !@parents.find {|obj| obj.id == object.id }
       end
     end
 
@@ -128,7 +177,7 @@ module Topolys
     #
     # @param [Object] object An object to unlink
     def unlink(object)
-      @edges.reject!{ |id, obj| id == object.id }
+      @parents.reject!{ |obj| obj.id == object.id }
     end
     
   end # Object
@@ -145,7 +194,7 @@ module Topolys
     #
     # @param [Point3D] point
     def initialize(point)
-      super
+      super()
       @point = point
     end
 
@@ -177,7 +226,7 @@ module Topolys
     # @param [Vertex] v0 The origin Vertex
     # @param [Vertex] v1 The terminal Vertex
     def initialize(v0, v1)
-      super
+      super()
       
       # should catch if 'origin' or 'terminal' not P3D objects ...
       # should also catch if 'origin' or 'terminal' refer to same object
@@ -234,7 +283,7 @@ module Topolys
     # @param [Edge] edge The underlying edge
     # @param [Boolean] inverted True if this is a forward DirectedEdge, false otherwise
     def initialize(edge, inverted)
-      super
+      super()
       @edge = edge
       @inverted = inverted
       @edge.link(self)
@@ -276,7 +325,7 @@ module Topolys
     # @param [Edge] edge The underlying edge
     # @param [Boolean] inverted True if this is a forward DirectedEdge, false otherwise    
     def initialize(directed_edges) 
-      super
+      super()
       @directed_edges = directed_edges
       
       raise "Not sequential" if !sequential?
@@ -368,6 +417,7 @@ module Topolys
     # @param [Array] holes Array of inner wires 
     def initialize(outer, holes)
       # TODO
+      super()
     end
 
     def parent_class
