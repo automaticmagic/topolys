@@ -23,6 +23,29 @@ require 'securerandom'
 # TODO : start integrating warning logs à la raise ...
 module Topolys
 
+  ##
+  # Checks if one array of objects is the same as another array of objects.
+  # The order of objects must be the same but the two arrays may start at different indices.
+  #
+  # @param [Array] objects1 Array
+  # @param [Array] objects2 Array
+  #
+  # @return [Integer] Returns offset between objects2 and objects1 or nil
+  def Topolys.find_offset(objects1, objects2)
+
+    n = objects1.size
+    return nil if objects2.size != n
+    
+    offset = objects2.index{|obj| objects1[0].id == obj.id}
+    return nil if !offset
+    
+    objects1.each_index do |i|
+      return nil if objects1[i].id != objects2[(offset+i)%n].id
+    end
+    
+    return offset
+  end
+
   # The Topolys Model contains many Topolys Objects, a Topolys Object can only be
   # connected to other Topolys Objects in the same Topolys Model.  To enforce this
   # Topolys Objects should not be constructed directly, they should be retrieved using
@@ -73,6 +96,9 @@ module Topolys
       
       v = Vertex.new(point)
       @vertices << v
+      
+      # TODO: check if this vertex needs to be inserted on any edge
+      
       return v
     end
     
@@ -129,9 +155,6 @@ module Topolys
       return directed_edge
     end
     
-    ##
-    # Initializes a Wire object from an Array of Point3D
-    #
     # @param [Array] vertices Array of Vertex, assumes closed wire (e.g. first vertex is also last vertex)
     # @return [Wire] Wire
     def get_wire(vertices)
@@ -154,6 +177,32 @@ module Topolys
       wire = Wire.new(directed_edges)
       @wires << wire
       return wire
+    end
+    
+    # @param [Wire] outer Outer wire  
+    # @param [Array] holes Array of Wire
+    # @return [Face] Face Returns Face or nil if wires are not in model
+    def get_face(outer, holes)
+      # search for face and return if exists 
+      # otherwise create new face
+      
+      hole_ids = holes.map{|h| h.id}.sort 
+      @faces.each do |face|
+        if face.outer.id == outer.id
+          if face.holes.map{|h| h.id}.sort == hole_ids
+            return face
+          end
+        end
+      end
+
+      return nil if @wires.index{|w| w.id == outer.id}.nil?
+      holes.each do |hole|
+        return nil if @wires.index{|w| w.id == outer.id}.nil?
+      end
+      
+      face = Face.new(outer, holes)
+      @faces << face
+      return face
     end
     
   end # Model
@@ -359,7 +408,6 @@ module Topolys
       raise "Not closed" if !closed?
       
       # TODO: compute plane from points
-      
 
       @directed_edges.each do |de|
         de.link(self)
@@ -418,18 +466,24 @@ module Topolys
     #
     # @return [Bool] Returns true if the wires are circular_equal, false otherwise
     def circular_equal?(directed_edges)
-
-      n = @directed_edges.size
-      return false if directed_edges.size != n
       
-      offset = directed_edges.index{|de| @directed_edges[0].id == de.id}
-      return false if !offset
-      
-      @directed_edges.each_index do |i|
-        return false if @directed_edges[i].id != directed_edges[(offset+i)%n].id
+      if !Topolys::find_offset(@directed_edges, directed_edges).nil?
+        return true
       end
       
-      return true
+      return false
+    end
+    
+    ##
+    # Checks if this Wire is reverse equal to another Wire.
+    # The order of directed edges must be the same but the two arrays may start at different indices.
+    #
+    # @param [Wire] other Other Wire
+    #
+    # @return [Bool] Returns true if the wires are reverse_equal, false otherwise
+    def reverse_equal?(other)
+      # TODO: implement
+      return false
     end
     
     # TODO : deleting an edge, inserting a sequential edge, etc.
@@ -455,7 +509,7 @@ module Topolys
   class Face < Object
 
     ##
-    # Initializes a Wire object
+    # Initializes a Face object
     #
     # Throws if outer or holes are incorrect type or if holes have incorrect winding
     #

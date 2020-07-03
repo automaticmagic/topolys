@@ -132,10 +132,60 @@ RSpec.describe Topolys do
     expect(model.wires.size).to eq(2)
     expect(wire4.id).to eq(wire3.id)
     expect(wire4.perimeter).to eq(16)
+    
+    model.wires.each do |wire|
+      expect(wire.parents.size).to eq(0)
+      wire.directed_edges.each do |de|
+        expect(de.parents.size).to eq(1)
+        expect(de.parents.find{|p| p.id == wire.id}).not_to be_nil
+      end
+    end
+    
+    model.vertices.each do |vertex|
+      expect(vertex.parents.size).to eq(2)
+    end
+    
+    model.edges.each do |edge|
+      expect(edge.parents.size).to eq(2)
+    end
+    
   end
   
   it "has Face class" do
   
+    model = Topolys::Model.new
+    expect(model.vertices.size).to eq(0)
+    expect(model.edges.size).to eq(0)
+    expect(model.directed_edges.size).to eq(0)
+    expect(model.wires.size).to eq(0)
+    expect(model.faces.size).to eq(0)
+    
+    width = 5
+    height = 3
+    points = make_rectangle(width, height)
+    vertices = model.get_vertices(points)
+    expect(model.vertices.size).to eq(4)
+    expect(model.edges.size).to eq(0)
+    expect(model.directed_edges.size).to eq(0)
+    expect(model.wires.size).to eq(0)
+    expect(model.faces.size).to eq(0)
+    expect(vertices.count(nil)).to eq(0)
+    
+    outer = model.get_wire(vertices)
+    expect(model.vertices.size).to eq(4)
+    expect(model.edges.size).to eq(4)
+    expect(model.directed_edges.size).to eq(4)
+    expect(model.wires.size).to eq(1)
+    expect(model.faces.size).to eq(0)
+    expect(outer.perimeter).to eq(16)
+    
+    holes = []
+    face = model.get_face(outer, holes)
+    expect(model.vertices.size).to eq(4)
+    expect(model.edges.size).to eq(4)
+    expect(model.directed_edges.size).to eq(4)
+    expect(model.wires.size).to eq(1)
+    expect(model.faces.size).to eq(1)
   end
   
   
