@@ -168,7 +168,7 @@ RSpec.describe Topolys do
     expect(v3D_5.y).to be_within(0.0001).of(-2)
     expect(v3D_5.z).to be_within(0.0001).of(-4)
 
-    v3D_5.normalize                       # unit vector & dot product
+    v3D_5.normalize!                      # unit vector & dot product
     expect(v3D_5.x).to be_within(0.0001).of(0)
     expect(v3D_5.y).to be_within(0.0001).of(-0.4472135954999579)
     expect(v3D_5.z).to be_within(0.0001).of(-0.8944271909999159)

@@ -1,4 +1,5 @@
 require 'topolys'
+require 'geometry_helpers'
 
 RSpec.describe Topolys do
 
@@ -81,6 +82,10 @@ RSpec.describe Topolys do
     expect(e0.parents.size).to eq(2)
     expect(e0.parents[0].id).to eq(de0.id)
     expect(e0.parents[1].id).to eq(de1.id)
+  end
+  
+  it "has DirectedEdge class" do
+  
   end
   
 end # Topolys
