@@ -76,6 +76,12 @@ module Topolys
       return v
     end
     
+    # @param [Array] points Array of Point3D
+    # @return [Array] Array of Vertex
+    def get_vertices(points)
+      points.map {|p| get_vertex(p)}
+    end
+    
     # @param [Vertex] v0
     # @param [Vertex] v1
     # @return [Edge] Edge
@@ -123,11 +129,31 @@ module Topolys
       return directed_edge
     end
     
-    # @param [Array] vertices Array of Vertex, assumes closed wire
+    ##
+    # Initializes a Wire object from an Array of Point3D
+    #
+    # @param [Array] vertices Array of Vertex, assumes closed wire (e.g. first vertex is also last vertex)
     # @return [Wire] Wire
     def get_wire(vertices)
-      # search for wire and return a view (includes starting point) if exists 
+      # search for wire and return if exists 
       # otherwise create new wire
+      
+      n = vertices.size
+      directed_edges = []
+      vertices.each_index do |i|
+        directed_edges << get_directed_edge(vertices[i], vertices[(i+1)%n])
+      end
+      
+      # see if we already have this wire
+      @wires.each do |wire|
+        if wire.circular_equal?(directed_edges)
+          return wire
+        end
+      end
+      
+      wire = Wire.new(directed_edges)
+      @wires << wire
+      return wire
     end
     
   end # Model
@@ -328,10 +354,11 @@ module Topolys
       super()
       @directed_edges = directed_edges
       
+      raise "Empty edges" if @directed_edges.empty?
       raise "Not sequential" if !sequential?
-      raise "Not closed" if !closed
+      raise "Not closed" if !closed?
       
-      # compute plane from points
+      # TODO: compute plane from points
       
 
       @directed_edges.each do |de|
@@ -344,17 +371,15 @@ module Topolys
     end
     
     ##
-    # @param [Boolean] include_last If true, return repeated last point for closed loops
     # @return [Array] Array of Vertex
-    def vertices(include_last:false)
- 
+    def vertices
+      @directed_edges.map {|de| de.v0}
     end
     
     ##
-    # @param [Boolean] include_last If true, return repeated last point for closed loops
-    # @return [Array] Arracy of Point3D
-    def points(include_last:false)
- 
+    # @return [Array] Array of Point3D
+    def points
+      vertices.map {|v| v.point}
     end
     
     ##
@@ -362,14 +387,17 @@ module Topolys
     #
     # @return [Bool] Returns true if sequential
     def sequential?
-      answer = false
-      @dedges.each do |edge, direction|
+      n = @directed_edges.size
+      @directed_edges.each_index do |i|
+        break if i == n-1
+        
         # e.g. check if first edge v0 == last edge v
         #      check if each intermediate, nieghbouring v0 & v are equal
         #      e.g. by relying on 'inverted?'
         #      'answer = true' if all checks out
+        return false if @directed_edges[i].v1.id != @directed_edges[i+1].v0.id
       end
-      return answer
+      return true
     end
     
     ##
@@ -377,14 +405,31 @@ module Topolys
     #
     # @return [Bool] Returns true if closed
     def closed?
-      answer = false
-      @dedges.each do |edge, direction|
-        # e.g. check if first edge v0 == last edge v
-        #      check if each intermediate, nieghbouring v0 & v are equal
-        #      e.g. by relying on 'inverted?'
-        #      'answer = true' if all checks out
+      n = @directed_edges.size
+      return false if n < 3
+      return @directed_edges[n-1].v1.id == @directed_edges[0].v0.id
+    end
+    
+    ##
+    # Checks if this Wire's directed edges are the same as another array of directed edges.
+    # The order of directed edges must be the same but the two arrays may start at different indices.
+    #
+    # @param [Array] directed_edges Array of DirectedEdge
+    #
+    # @return [Bool] Returns true if the wires are circular_equal, false otherwise
+    def circular_equal?(directed_edges)
+
+      n = @directed_edges.size
+      return false if directed_edges.size != n
+      
+      offset = directed_edges.index{|de| @directed_edges[0].id == de.id}
+      return false if !offset
+      
+      @directed_edges.each_index do |i|
+        return false if @directed_edges[i].id != directed_edges[(offset+i)%n].id
       end
-      return answer
+      
+      return true
     end
     
     # TODO : deleting an edge, inserting a sequential edge, etc.
@@ -394,7 +439,7 @@ module Topolys
     #
     # @return [Float] Returns perimeter of 3D wire
     def perimeter
-      # returns perimeter, i.e. sum of edge lengths
+      @directed_edges.inject(0){|sum, de| sum + de.length }
     end
 
     ##
@@ -404,6 +449,7 @@ module Topolys
     def normal # TODO
       # from 2x edges (i.e. 3x vertices), generate a surface V3D normal ...
     end
+    
   end # Wire 
 
   class Face < Object
