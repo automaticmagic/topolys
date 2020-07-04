@@ -72,6 +72,19 @@ module Topolys
       @shells = []
       @cells = []
     end
+    
+    # @param [Vertex] vertex
+    # @param [Edge] edge
+    # @return [Bool] Returns true if vertex lies on edge but is not already a member of the edge
+    def vertex_intersect_edge?(vertex, edge)
+      return false if vertex.id == edge.v0.id || vertex.id == edge.v1.id
+      a = (vertex.point-edge.v0.point).magnitude
+      b = (vertex.point-edge.v1.point).magnitude
+      c = edge.magnitude
+      return true if (a + b - c).abs < @tol
+      
+      return false
+    end
 
     # @param [Point3D] point
     # @return [Vertex] Vertex
@@ -97,7 +110,13 @@ module Topolys
       v = Vertex.new(point)
       @vertices << v
       
-      # TODO: check if this vertex needs to be inserted on any edge
+      # check if this vertex needs to be inserted on any edge
+      @edges.each do |edge|
+        if vertex_intersect_edge?(v, edge)
+          # TODO: implement edge.insert(vertex)
+          puts "vertex should be added to edge"
+        end
+      end
       
       return v
     end
@@ -205,6 +224,32 @@ module Topolys
       return face
     end
     
+    # @param [Object] object Object
+    # @return [Object] Returns reversed object
+    def get_reverse(object)
+      if object.is_a?(Vertex)
+        return object
+      elsif object.is_a?(Edge)
+        return object    
+      elsif object.is_a?(DirectedEdge)
+        return get_directed_edge(object.v1, object.v0)
+      elsif object.is_a?(Wire)
+        return get_wire(object.vertices.reverse)
+      elsif object.is_a?(Face)
+        reverse_outer = get_wire(object.outer.vertices.reverse)
+        reverse_holes = []
+        object.holes.each do |hole|
+          reverse_holes << get_wire(hole.vertices.reverse)
+        end
+        return get_face(reverse_outer, reverse_holes)
+      end
+      
+      return nil
+    end
+    
+    private
+    
+    
   end # Model
   
   class Object
@@ -292,6 +337,7 @@ module Topolys
     
     # @return [Numeric] the length of this edge
     attr_reader :length
+    alias magnitude length
     
     ##
     # Initializes an Edge object, use Model.get_edge instead
@@ -327,7 +373,7 @@ module Topolys
     def reverse_edge
       @parents.first{|de| de.inverted}
     end
-    
+
   end # Edge
   
   class DirectedEdge < Object
@@ -507,7 +553,13 @@ module Topolys
   end # Wire 
 
   class Face < Object
-
+  
+    # @return [Wire] outer polygon
+    attr_reader :outer
+    
+    # @return [Array] Array of Wire
+    attr_reader :holes
+    
     ##
     # Initializes a Face object
     #
@@ -516,8 +568,14 @@ module Topolys
     # @param [Wire] outer The outer boundary
     # @param [Array] holes Array of inner wires 
     def initialize(outer, holes)
-      # TODO
       super()
+      @outer = outer
+      @holes = holes
+      
+      # TODO: check that holes have opposite normal from outer
+      # TODO: check that holes are on same plane as outer
+      # TODO: check that holes contained within outer
+      
     end
 
     def parent_class
