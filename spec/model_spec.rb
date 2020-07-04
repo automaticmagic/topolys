@@ -186,7 +186,67 @@ RSpec.describe Topolys do
     expect(model.directed_edges.size).to eq(4)
     expect(model.wires.size).to eq(1)
     expect(model.faces.size).to eq(1)
+    
+    reverse_face = model.get_reverse(face)
+    expect(model.vertices.size).to eq(4)
+    expect(model.edges.size).to eq(4)
+    expect(model.directed_edges.size).to eq(8)
+    expect(model.wires.size).to eq(2)
+    expect(model.faces.size).to eq(2)
+    
+    reverse_reverse_face = model.get_reverse(reverse_face)
+    expect(model.vertices.size).to eq(4)
+    expect(model.edges.size).to eq(4)
+    expect(model.directed_edges.size).to eq(8)
+    expect(model.wires.size).to eq(2)
+    expect(model.faces.size).to eq(2)
   end
   
+  it "can test Vertex on Edge" do
+  
+    model = Topolys::Model.new
+    expect(model.vertices.size).to eq(0)
+    expect(model.edges.size).to eq(0)
+    
+    v0 = model.get_vertex(Topolys::Point3D.new(0,0,0))
+    v1 = model.get_vertex(Topolys::Point3D.new(1,0,0))
+    v2 = model.get_vertex(Topolys::Point3D.new(2,0,0))
+    v3 = model.get_vertex(Topolys::Point3D.new(3,0,0))
+    v4 = model.get_vertex(Topolys::Point3D.new(4,0,0))
+    
+    edge = model.get_edge(v1,v3)
+    expect(model.vertex_intersect_edge?(v0, edge)).to eq(false)
+    expect(model.vertex_intersect_edge?(v1, edge)).to eq(false)
+    expect(model.vertex_intersect_edge?(v2, edge)).to eq(true)
+    expect(model.vertex_intersect_edge?(v3, edge)).to eq(false)
+    expect(model.vertex_intersect_edge?(v4, edge)).to eq(false)
+    
+  end
+  
+  it "can add Vertex to Edge" do
+  
+    model = Topolys::Model.new
+    expect(model.vertices.size).to eq(0)
+    expect(model.edges.size).to eq(0)
+    
+    v1 = model.get_vertex(Topolys::Point3D.new(1,0,0))
+    v2 = model.get_vertex(Topolys::Point3D.new(3,0,0))
+    edge = model.get_edge(v1,v2)
+    expect(model.vertices.size).to eq(2)
+    expect(model.edges.size).to eq(1)
+    
+    v3 = model.get_vertex(Topolys::Point3D.new(0,0,0))
+    expect(model.vertices.size).to eq(3)
+    expect(model.edges.size).to eq(1)
+    
+    v4 = model.get_vertex(Topolys::Point3D.new(4,0,0))
+    expect(model.vertices.size).to eq(4)
+    expect(model.edges.size).to eq(1)
+    
+    v5 = model.get_vertex(Topolys::Point3D.new(2,0,0))
+    expect(model.vertices.size).to eq(5)
+    #expect(model.edges.size).to eq(2) # TODO: fix this
+    
+  end
   
 end # Topolys
