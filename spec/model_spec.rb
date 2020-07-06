@@ -231,8 +231,10 @@ RSpec.describe Topolys do
     
     v1 = model.get_vertex(Topolys::Point3D.new(1,0,0))
     v2 = model.get_vertex(Topolys::Point3D.new(3,0,0))
-    edge = model.get_edge(v1,v2)
-    expect(model.vertices.size).to eq(2)
+    edge1 = model.get_edge(v1,v2)
+    expect(edge1.v0.id).to eq(v1.id)
+    expect(edge1.v1.id).to eq(v2.id)
+    expect(model.edges.size).to eq(1)
     expect(model.edges.size).to eq(1)
     
     v3 = model.get_vertex(Topolys::Point3D.new(0,0,0))
@@ -245,8 +247,116 @@ RSpec.describe Topolys do
     
     v5 = model.get_vertex(Topolys::Point3D.new(2,0,0))
     expect(model.vertices.size).to eq(5)
-    #expect(model.edges.size).to eq(2) # TODO: fix this
+    expect(model.edges.size).to eq(2) 
+    expect(edge1.v0.id).to eq(v1.id)
+    expect(edge1.v1.id).to eq(v5.id)
+    expect(model.edges[0].v0.id).to eq(v1.id)
+    expect(model.edges[0].v1.id).to eq(v5.id)
+    expect(model.edges[1].v0.id).to eq(v5.id)
+    expect(model.edges[1].v1.id).to eq(v2.id)
+  end
+  
+  it "can add Vertex to a Face" do
+  
+    model = Topolys::Model.new
+    expect(model.vertices.size).to eq(0)
+    expect(model.edges.size).to eq(0)
+    expect(model.directed_edges.size).to eq(0)
+    expect(model.wires.size).to eq(0)
+    expect(model.faces.size).to eq(0)
+    
+    width = 5
+    height = 3
+    points = make_rectangle(width, height)
+    vertices = model.get_vertices(points)
+    outer = model.get_wire(vertices)
+    holes = []
+    face = model.get_face(outer, holes)
+    reverse_face = model.get_reverse(face)
+    expect(model.vertices.size).to eq(4)
+    expect(model.edges.size).to eq(4)
+    expect(model.directed_edges.size).to eq(8)
+    expect(model.wires.size).to eq(2)
+    expect(model.faces.size).to eq(2)
+    
+    v0 = model.get_vertex(Topolys::Point3D.new(0,0,0))
+    v1 = model.get_vertex(Topolys::Point3D.new(5,0,0))
+    
+    de1 = model.get_directed_edge(v1, v0)
+    expect(de1.v0.point.x).to eq(5)
+    expect(de1.v0.point.y).to eq(0)
+    expect(de1.v0.point.z).to eq(0)
+    expect(de1.v1.point.x).to eq(0)
+    expect(de1.v1.point.y).to eq(0)
+    expect(de1.v1.point.z).to eq(0)    
+    
+    reverse_de1 = model.get_directed_edge(v0, v1)
+    expect(reverse_de1.v1.point.x).to eq(5)
+    expect(reverse_de1.v1.point.y).to eq(0)
+    expect(reverse_de1.v1.point.z).to eq(0)
+    expect(reverse_de1.v0.point.x).to eq(0)
+    expect(reverse_de1.v0.point.y).to eq(0)
+    expect(reverse_de1.v0.point.z).to eq(0) 
+    
+    expect(model.vertices.size).to eq(4)
+    expect(model.edges.size).to eq(4)
+    expect(model.directed_edges.size).to eq(8)
+    expect(model.wires.size).to eq(2)
+    expect(model.faces.size).to eq(2)
+    
+    expect(face.outer.directed_edges.size).to eq(4)
+    expect(face.outer.perimeter).to eq(16)
+    expect(face.outer.directed_edges.find{|x| x.id == de1.id}).not_to be_nil
+    
+    expect(reverse_face.outer.directed_edges.size).to eq(4)
+    expect(reverse_face.outer.perimeter).to eq(16)
+    expect(reverse_face.outer.directed_edges.find{|x| x.id == reverse_de1.id}).not_to be_nil
+    
+    new_vertex = model.get_vertex(Topolys::Point3D.new(2.5,0,0))
+    
+    expect(face.outer.directed_edges.size).to eq(5)
+    expect(face.outer.perimeter).to eq(16)
+    expect(face.outer.directed_edges.find{|x| x.id == de1.id}).not_to be_nil
+    expect(de1.v0.point.x).to eq(5)
+    expect(de1.v0.point.y).to eq(0)
+    expect(de1.v0.point.z).to eq(0)
+    expect(de1.v1.point.x).to eq(2.5)
+    expect(de1.v1.point.y).to eq(0)
+    expect(de1.v1.point.z).to eq(0)   
+    
+    expect(reverse_face.outer.directed_edges.size).to eq(5)
+    expect(reverse_face.outer.perimeter).to eq(16)
+    expect(reverse_face.outer.directed_edges.find{|x| x.id == reverse_de1.id}).not_to be_nil
+    expect(reverse_de1.v1.point.x).to eq(5)
+    expect(reverse_de1.v1.point.y).to eq(0)
+    expect(reverse_de1.v1.point.z).to eq(0)
+    expect(reverse_de1.v0.point.x).to eq(2.5)
+    expect(reverse_de1.v0.point.y).to eq(0)
+    expect(reverse_de1.v0.point.z).to eq(0) 
+    
+    new_vertex = model.get_vertex(Topolys::Point3D.new(0,0,0))
+    
+    expect(face.outer.directed_edges.size).to eq(5)
+    expect(face.outer.perimeter).to eq(16)
+    expect(face.outer.directed_edges.find{|x| x.id == de1.id}).not_to be_nil
+    expect(de1.v0.point.x).to eq(5)
+    expect(de1.v0.point.y).to eq(0)
+    expect(de1.v0.point.z).to eq(0)
+    expect(de1.v1.point.x).to eq(2.5)
+    expect(de1.v1.point.y).to eq(0)
+    expect(de1.v1.point.z).to eq(0)   
+    
+    expect(reverse_face.outer.directed_edges.size).to eq(5)
+    expect(reverse_face.outer.perimeter).to eq(16)
+    expect(reverse_face.outer.directed_edges.find{|x| x.id == reverse_de1.id}).not_to be_nil
+    expect(reverse_de1.v1.point.x).to eq(5)
+    expect(reverse_de1.v1.point.y).to eq(0)
+    expect(reverse_de1.v1.point.z).to eq(0)
+    expect(reverse_de1.v0.point.x).to eq(2.5)
+    expect(reverse_de1.v0.point.y).to eq(0)
+    expect(reverse_de1.v0.point.z).to eq(0) 
     
   end
+  
   
 end # Topolys
