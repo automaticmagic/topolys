@@ -356,6 +356,28 @@ RSpec.describe Topolys do
     expect(reverse_de1.v0.point.y).to eq(0)
     expect(reverse_de1.v0.point.z).to eq(0) 
     
+    new_vertex = model.get_vertex(Topolys::Point3D.new(2.5,2.5,0))
+    
+    expect(face.outer.directed_edges.size).to eq(5)
+    expect(face.outer.perimeter).to eq(16)
+    expect(face.outer.directed_edges.find{|x| x.id == de1.id}).not_to be_nil
+    expect(de1.v0.point.x).to eq(5)
+    expect(de1.v0.point.y).to eq(0)
+    expect(de1.v0.point.z).to eq(0)
+    expect(de1.v1.point.x).to eq(2.5)
+    expect(de1.v1.point.y).to eq(0)
+    expect(de1.v1.point.z).to eq(0)   
+    
+    expect(reverse_face.outer.directed_edges.size).to eq(5)
+    expect(reverse_face.outer.perimeter).to eq(16)
+    expect(reverse_face.outer.directed_edges.find{|x| x.id == reverse_de1.id}).not_to be_nil
+    expect(reverse_de1.v1.point.x).to eq(5)
+    expect(reverse_de1.v1.point.y).to eq(0)
+    expect(reverse_de1.v1.point.z).to eq(0)
+    expect(reverse_de1.v0.point.x).to eq(2.5)
+    expect(reverse_de1.v0.point.y).to eq(0)
+    expect(reverse_de1.v0.point.z).to eq(0) 
+    
   end
   
   

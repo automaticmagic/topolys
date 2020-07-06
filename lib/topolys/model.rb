@@ -78,11 +78,15 @@ module Topolys
     # @return [Bool] Returns true if vertex lies on edge but is not already a member of the edge
     def vertex_intersect_edge?(vertex, edge)
       return false if vertex.id == edge.v0.id || vertex.id == edge.v1.id
+      
       a = (vertex.point-edge.v0.point).magnitude
       b = (vertex.point-edge.v1.point).magnitude
       c = edge.magnitude
-      #puts "#{a}, #{b}, #{c}, #{@tol}"
-      return true if (a + b - c).abs < @tol
+      
+      if (a + b - c).abs < @tol
+        #puts "#{a}, #{b}, #{c}, #{@tol}"
+        return true
+      end
       
       return false
     end
@@ -114,7 +118,7 @@ module Topolys
       # check if this vertex needs to be inserted on any edge
       @edges.each do |edge|
         if vertex_intersect_edge?(v, edge)
-          split_edge(edge, v)
+          insert_vertex_on_edge(v, edge)
         end
       end
       
@@ -248,6 +252,32 @@ module Topolys
     end
     
     private
+    
+    ##
+    # Projects a vertex to be on an edge
+    #
+    # @param [Vertex] vertex Vertex to modify
+    # @param [Edge] edge Edge to project the vertex to
+    def insert_vertex_on_edge(vertex, edge)
+      
+      vector1 = (edge.v1.point - edge.v0.point)
+      vector1.normalize!
+      
+      vector2 = (vertex.point - edge.v0.point)
+      
+      length = vector1.dot(vector2)
+      new_point = edge.v0.point + (vector1*length)
+      
+      distance = (vertex.point - new_point).magnitude
+      raise "distance = #{distance}" if distance > @tol
+
+      # simulate friend access to set point on vertex
+      vertex.instance_variable_set(:@point, new_point) 
+      vertex.recalculate
+      
+      # now split the edge with this vertex
+      split_edge(edge, vertex)
+    end
     
     ##
     # Adds new vertex between edges's v0 and v1, edge now goes from 
@@ -389,7 +419,10 @@ module Topolys
       super()
       @point = point
     end
-
+    
+    def recalculate
+    end
+    
     def parent_class
       Edge
     end
