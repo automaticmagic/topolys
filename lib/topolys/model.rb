@@ -78,10 +78,15 @@ module Topolys
     # @return [Bool] Returns true if vertex lies on edge but is not already a member of the edge
     def vertex_intersect_edge?(vertex, edge)
       return false if vertex.id == edge.v0.id || vertex.id == edge.v1.id
+      
       a = (vertex.point-edge.v0.point).magnitude
       b = (vertex.point-edge.v1.point).magnitude
       c = edge.magnitude
-      return true if (a + b - c).abs < @tol
+      
+      if (a + b - c).abs < @tol
+        #puts "#{a}, #{b}, #{c}, #{@tol}"
+        return true
+      end
       
       return false
     end
@@ -113,8 +118,7 @@ module Topolys
       # check if this vertex needs to be inserted on any edge
       @edges.each do |edge|
         if vertex_intersect_edge?(v, edge)
-          # TODO: implement edge.insert(vertex)
-          puts "vertex should be added to edge"
+          insert_vertex_on_edge(v, edge)
         end
       end
       
@@ -249,6 +253,104 @@ module Topolys
     
     private
     
+    ##
+    # Projects a vertex to be on an edge
+    #
+    # @param [Vertex] vertex Vertex to modify
+    # @param [Edge] edge Edge to project the vertex to
+    def insert_vertex_on_edge(vertex, edge)
+      
+      vector1 = (edge.v1.point - edge.v0.point)
+      vector1.normalize!
+      
+      vector2 = (vertex.point - edge.v0.point)
+      
+      length = vector1.dot(vector2)
+      new_point = edge.v0.point + (vector1*length)
+      
+      distance = (vertex.point - new_point).magnitude
+      raise "distance = #{distance}" if distance > @tol
+
+      # simulate friend access to set point on vertex
+      vertex.instance_variable_set(:@point, new_point) 
+      vertex.recalculate
+      
+      # now split the edge with this vertex
+      split_edge(edge, vertex)
+    end
+    
+    ##
+    # Adds new vertex between edges's v0 and v1, edge now goes from 
+    # v0 to new vertex and a new_edge goes from new vertex to v1. 
+    # Updates directed edges which reference edge.
+    #
+    # @param [Edge] edge Edge to modify
+    # @param [Vertex] new_vertex Vertex to add
+    def split_edge(edge, new_vertex)
+      v1 = edge.v1
+      
+      # simulate friend access to set v1 on edge
+      edge.instance_variable_set(:@v1, new_vertex) 
+      edge.recalculate
+    
+      # make a new edge
+      new_edge = get_edge(new_vertex, v1)
+      
+      # update the directed edges referencing this edge
+      edge.parents.each do |directed_edge|
+        split_directed_edge(directed_edge, new_edge)
+      end
+    end
+    
+    ##
+    # Creates a new directed edge in same direction for the new edge.
+    # Updates wires which reference directed edge.
+    #
+    # @param [DirectedEdge] directed_edge Existing directed edge
+    # @param [Edge] new_edge New edge
+    def split_directed_edge(directed_edge, new_edge)
+    
+      # directed edge is pointing to the new updated edge but need to recalculate
+      # its cached parameters
+      directed_edge.recalculate
+      
+      # make a new directed edge for the new edge
+      new_directed_edge = nil
+      if directed_edge.inverted
+        new_directed_edge = get_directed_edge(new_edge.v1, new_edge.v0)
+      else
+        new_directed_edge = get_directed_edge(new_edge.v0, new_edge.v1)
+      end
+
+      # update the wires referencing this directed edge
+      directed_edge.parents.each do |wire|
+        split_wire(wire, directed_edge, new_directed_edge)
+      end
+    end
+
+    ##
+    # Inserts new directed edge after directed edge in wire
+    #
+    # @param [Wire] wire Existing wire
+    # @param [DirectedEdge] directed_edge Existing directed edge
+    # @param [DirectedEdge] directed_edge New directed edge to insert
+    def split_wire(wire, directed_edge, new_directed_edge)
+      
+      directed_edges = wire.directed_edges
+      
+      index = directed_edges.index{|de| de.id == directed_edge.id}
+      return nil if !index
+    
+      directed_edges.insert(index + 1, new_directed_edge)
+      
+      new_directed_edge.link(wire)
+      
+      # simulate friend access to set directed_edges on wire
+      wire.instance_variable_set(:@directed_edges, directed_edges) 
+      wire.recalculate
+      
+      # no need to update faces referencing this wire
+    end
     
   end # Model
   
@@ -317,7 +419,10 @@ module Topolys
       super()
       @point = point
     end
-
+    
+    def recalculate
+    end
+    
     def parent_class
       Edge
     end
@@ -358,6 +463,10 @@ module Topolys
       @v0.link(self)
       @v1.link(self)
       
+      recalculate
+    end
+    
+    def recalculate
       vector = @v1.point - @v0.point
       @length = vector.magnitude
     end
@@ -409,6 +518,10 @@ module Topolys
       @inverted = inverted
       @edge.link(self)
       
+      recalculate
+    end
+    
+    def recalculate
       if inverted
         @v0 = edge.v1
         @v1 = edge.v0
@@ -458,6 +571,11 @@ module Topolys
       @directed_edges.each do |de|
         de.link(self)
       end
+      
+      recalculate
+    end
+    
+    def recalculate
     end
     
     def parent_class
@@ -576,8 +694,12 @@ module Topolys
       # TODO: check that holes are on same plane as outer
       # TODO: check that holes contained within outer
       
+      recalculate
     end
-
+    
+    def recalculate
+    end
+    
     def parent_class
       NilClass
     end
