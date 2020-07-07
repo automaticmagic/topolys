@@ -183,7 +183,7 @@ module Topolys
       return nil unless other.is_a?(Topolys::Vector3D)
       x = @y * other.z - @z * other.y
       y = @z * other.x - @x * other.z
-      z = @y * other.y - @y * other.x
+      z = @x * other.y - @y * other.x
       return Topolys::Vector3D.new(x, y, z)
     end
     
@@ -224,7 +224,34 @@ module Topolys
   end # Vector3D
 
   class Plane3D
-
+  
+    # @return [Point3D] arbitrary point on plane
+    attr_reader :point
+    
+    # @return [Vector3D] normalized vector perpendicular to plane
+    attr_reader :normal
+    
+    ##
+    # Initializes a Plane3D object from a point and an outward normal
+    #
+    # @param [Point3d] point
+    # @param [Vector3D] normal
+    def initialize(point, normal)
+      raise "Incorrect point argument for Plane3D, expected Point3D but got #{point.class}" unless point.is_a?(Topolys::Point3D)
+      raise "Incorrect normal argument for Plane3D, expected Vector3D but got #{normal.class}" unless normal.is_a?(Topolys::Vector3D)
+      raise "Incorrect normal argument for Plane3D, magnitude too small" unless normal.magnitude > Float::EPSILON
+      
+      @point = Point3D.new(point.x, point.y, point.z)
+      @normal = Vector3D.new(normal.x, normal.y, normal.z)
+      @normal.normalize!
+      
+      # coefficients for equation of a plane
+      @a = @normal.x
+      @b = @normal.y
+      @c = @normal.z
+      @d = -(@a*@point.x + @b*@point.y + @c*@point.z)
+    end
+    
     ##
     # Initializes a Plane3D object from three non-colinear points
     #
@@ -232,23 +259,31 @@ module Topolys
     # @param [Point3d] point2
     # @param [Point3d] point3
     def Plane3D.from_points(point1, point2, point3)
-      raise "Incorrect point1 argument for from_points, expected Point3d but got #{point1.class}" unless point1.is_a?(Point3d)
-      raise "Incorrect point2 argument for from_points, expected Point3d but got #{point2.class}" unless point2.is_a?(Point3d)
-      raise "Incorrect point3 argument for from_points, expected Point3d but got #{point3.class}" unless point3.is_a?(Point3d)
-      return Plane3D.new(0,0,0)
+      return nil unless point1.is_a?(Topolys::Point3D)
+      return nil unless point2.is_a?(Topolys::Point3D)
+      return nil unless point3.is_a?(Topolys::Point3D)
+      
+      normal = (point2-point1).cross(point3-point1)
+      return nil unless normal.magnitude > Float::EPSILON
+      
+      return Plane3D.new(point1, normal)
     end
 
     ##
     # Initializes a Plane3D object from a point and two vectors
     #
-    # @param [Point3d] point1
+    # @param [Point3d] point
     # @param [Vector3D] xaxis
     # @param [Vector3D] yaxis
-    def Plane3D.from_point_axes(point1, xaxis, yaxis)
-      raise "Incorrect point1 argument for from_point_axes, expected Point3d but got #{point1.class}" unless point1.is_a?(Point3d)
-      raise "Incorrect xaxis argument for from_point_axes, expected Vector3D but got #{xaxis.class}" unless xaxis.is_a?(Vector3D)
-      raise "Incorrect yaxis argument for from_point_axes, expected Vector3D but got #{yaxis.class}" unless yaxis.is_a?(Vector3D)
-      return Plane3D.new(0,0,0)
+    def Plane3D.from_point_axes(point, xaxis, yaxis)
+      return nil unless point.is_a?(Topolys::Point3D)
+      return nil unless xaxis.is_a?(Topolys::Vector3D)
+      return nil unless yaxis.is_a?(Topolys::Vector3D)
+      
+      normal = xaxis.cross(yaxis)
+      return nil unless normal.magnitude > Float::EPSILON
+      
+      return Plane3D.new(point, normal)
     end
     
     # TODO: implement methods below
@@ -260,31 +295,10 @@ module Topolys
     #
     # @return [Point3d] Returns point projected to this plane
     def project(point)
-      point
+      dist = @normal.dot(point-@point)
+      return point + normal*(-dist)
     end
-    
-    ##
-    # Check if a point is on this plane
-    #
-    # @param [Point3d] point
-    #
-    # @return [Boolean] Returns true if the point is on this plane, false otherwise
-    def point_on_plane(point, tol)
-      point == project(point)
-    end
-    
-    private 
-    
-    ##
-    # Initializes a Plane3D object from a point and two vectors
-    #
-    # @param [Point3d] point1
-    # @param [Vector3D] xaxis
-    # @param [Vector3D] yaxis
-    def initialize(point1, xaxis, yaxis)
-      super(point1.x, point1.y, point1.z)
-    end
-    
+
   end # Plane3D
 
 end # TOPOLYS

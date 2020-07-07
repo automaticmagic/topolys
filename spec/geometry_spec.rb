@@ -190,4 +190,69 @@ RSpec.describe Topolys do
     expect(v3D_9).to eq(nil)
   end 
 
+  it "has a Plane3D class" do
+    p0 = Topolys::Point3D.new(0, 0, 0)
+    p1 = Topolys::Point3D.new(1, 1, 1)
+    
+    vx = Topolys::Vector3D.new(1, 0, 0)
+    vy = Topolys::Vector3D.new(0, 1, 0)
+    vz = Topolys::Vector3D.new(0, 0, 1)
+    
+    cross = vx.cross(vy)
+    expect(cross.x).to be_within(0.0001).of(0)
+    expect(cross.y).to be_within(0.0001).of(0)
+    expect(cross.z).to be_within(0.0001).of(1)
+    
+    plane = Topolys::Plane3D.from_point_axes(p0, vx, vy)
+    expect(plane).not_to be_nil
+    expect(plane.normal.x).to be_within(0.0001).of(0)
+    expect(plane.normal.y).to be_within(0.0001).of(0)
+    expect(plane.normal.z).to be_within(0.0001).of(1)
+    expect(plane.project(p0).x).to be_within(0.0001).of(0)
+    expect(plane.project(p0).y).to be_within(0.0001).of(0)
+    expect(plane.project(p0).z).to be_within(0.0001).of(0)
+    expect(plane.project(p1).x).to be_within(0.0001).of(1)
+    expect(plane.project(p1).y).to be_within(0.0001).of(1)
+    expect(plane.project(p1).z).to be_within(0.0001).of(0)
+    expect(plane.normal.z).to be_within(0.0001).of(1)
+
+    plane = Topolys::Plane3D.from_point_axes(p1, vy, vx)
+    expect(plane).not_to be_nil
+    expect(plane.normal.x).to be_within(0.0001).of(0)
+    expect(plane.normal.y).to be_within(0.0001).of(0)
+    expect(plane.normal.z).to be_within(0.0001).of(-1)
+    expect(plane.project(p0).x).to be_within(0.0001).of(0)
+    expect(plane.project(p0).y).to be_within(0.0001).of(0)
+    expect(plane.project(p0).z).to be_within(0.0001).of(1)
+    expect(plane.project(p1).x).to be_within(0.0001).of(1)
+    expect(plane.project(p1).y).to be_within(0.0001).of(1)
+    expect(plane.project(p1).z).to be_within(0.0001).of(1)
+    
+    plane = Topolys::Plane3D.from_point_axes(p0, vy, vz)
+    expect(plane).not_to be_nil
+    expect(plane.normal.x).to be_within(0.0001).of(1)
+    expect(plane.normal.y).to be_within(0.0001).of(0)
+    expect(plane.normal.z).to be_within(0.0001).of(0)
+    expect(plane.project(p0).x).to be_within(0.0001).of(0)
+    expect(plane.project(p0).y).to be_within(0.0001).of(0)
+    expect(plane.project(p0).z).to be_within(0.0001).of(0)
+    expect(plane.project(p1).x).to be_within(0.0001).of(0)
+    expect(plane.project(p1).y).to be_within(0.0001).of(1)
+    expect(plane.project(p1).z).to be_within(0.0001).of(1)
+    
+    plane = Topolys::Plane3D.from_point_axes(p1, vx, vz)
+    expect(plane).not_to be_nil
+    expect(plane.normal.x).to be_within(0.0001).of(0)
+    expect(plane.normal.y).to be_within(0.0001).of(-1)
+    expect(plane.normal.z).to be_within(0.0001).of(0)
+    expect(plane.project(p0).x).to be_within(0.0001).of(0)
+    expect(plane.project(p0).y).to be_within(0.0001).of(1)
+    expect(plane.project(p0).z).to be_within(0.0001).of(0)
+    expect(plane.project(p1).x).to be_within(0.0001).of(1)
+    expect(plane.project(p1).y).to be_within(0.0001).of(1)
+    expect(plane.project(p1).z).to be_within(0.0001).of(1)
+    
+    plane = Topolys::Plane3D.from_point_axes(p0, vx, vx)
+    expect(plane).to be_nil
+  end
 end # Topolys
