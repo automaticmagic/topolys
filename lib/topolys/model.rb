@@ -565,8 +565,6 @@ module Topolys
       raise "Empty edges" if @directed_edges.empty?
       raise "Not sequential" if !sequential?
       raise "Not closed" if !closed?
-      
-      # TODO: compute plane from points
 
       @directed_edges.each do |de|
         de.link(self)
@@ -576,6 +574,27 @@ module Topolys
     end
     
     def recalculate
+      @normal = nil
+      largest = 0
+      @directed_edges.each_index do |i|
+        temp = @directed_edges[0].vector.cross(@directed_edges[i].vector)
+        if temp.magnitude > largest
+          largest = temp.magnitude
+          @normal = temp
+        end
+      end
+      
+      raise "Cannot compute normal" if @normal.nil?
+      raise "Normal has 0 length" if largest == 0
+      
+      @normal.normalize!
+      
+      @plane = Topolys::Plane3D.new(@directed_edges[0].v0.point, @normal)
+    
+      @directed_edges.each do |de|
+        raise "Point not on plane" if (de.v0.point - @plane.project(de.v0.point)).magnitude > Float::EPSILON
+        raise "Point not on plane" if (de.v1.point - @plane.project(de.v1.point)).magnitude > Float::EPSILON
+      end
     end
     
     def parent_class
@@ -664,8 +683,8 @@ module Topolys
     # Gets 3D normal (unit) vector
     #
     # @return [V3D] Returns normal (unit) vector
-    def normal # TODO
-      # from 2x edges (i.e. 3x vertices), generate a surface V3D normal ...
+    def normal
+      @plane.normal
     end
     
   end # Wire 
@@ -689,15 +708,28 @@ module Topolys
       super()
       @outer = outer
       @holes = holes
-      
-      # TODO: check that holes have opposite normal from outer
-      # TODO: check that holes are on same plane as outer
-      # TODO: check that holes contained within outer
-      
+
       recalculate
     end
     
     def recalculate
+    
+      # check that holes have opposite normal from outer
+      normal = @outer.normal
+      @holes.each do |hole|
+        raise "Hole does not have correct winding" if hole.normal.dot(normal) > -1 + Float::EPSILON
+      end
+      
+      # check that holes are on same plane as outer
+      plane = @outer.plane
+      @holes.each do |hole|
+        hold.points.each do |point|
+          raise "Point not on plane" if (point - plane.project(point)).magnitude > Float::EPSILON
+        end
+      end
+      
+      # TODO: check that holes are contained within outer
+      
     end
     
     def parent_class
