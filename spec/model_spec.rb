@@ -405,6 +405,7 @@ RSpec.describe Topolys do
     shell = model.get_shell([face1])
     expect(shell).not_to be_nil
     
+    # install graphviz and make sure dot is in the path
     model.save_graphviz('shell.dot')
     system('dot shell.dot -Tpdf -o shell.pdf')
 

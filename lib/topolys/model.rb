@@ -82,7 +82,7 @@ module Topolys
       result += "  rankdir=LR\n"
       all_objects.each do |obj|
         obj.children.each { |child| result += "  #{child.short_name} -> #{obj.short_name}\n" }
-        obj.parents.each { |parent| result += "  #{obj.short_name} -> #{parent.short_name}\n" }
+        #obj.parents.each { |parent| result += "  #{parent.short_name} -> #{obj.short_name}\n" }
       end
       result += " }"
       
@@ -465,7 +465,7 @@ module Topolys
     end
     
     def short_name
-      "#{self.class.to_s.gsub('Topolys::','')}_#{short_id}"
+      "#{self.class.to_s.gsub('Topolys::','').gsub('DirectedEdge', 'DEdge')}_#{short_id}"
     end
     
     def debug(str)
