@@ -73,6 +73,28 @@ module Topolys
       @cells = []
     end
     
+    def all_objects 
+      @vertices + @edges + @directed_edges + @wires + @faces + @shells + @cells
+    end
+    
+    def to_graphviz
+      result = "digraph model {\n"
+      result += "  rankdir=LR\n"
+      all_objects.each do |obj|
+        obj.children.each { |child| result += "  #{child.short_name} -> #{obj.short_name}\n" }
+        obj.parents.each { |parent| result += "  #{obj.short_name} -> #{parent.short_name}\n" }
+      end
+      result += " }"
+      
+      return result
+    end
+    
+    def save_graphviz(file)
+      File.open(file, 'w') do |file|
+        file.puts to_graphviz
+      end
+    end
+    
     # @param [Vertex] vertex
     # @param [Edge] edge
     # @return [Bool] Returns true if vertex lies on edge but is not already a member of the edge
@@ -250,6 +272,15 @@ module Topolys
         return nil if @faces.index{|f| f.id == face.id}.nil?
       end
       
+      shell = nil
+      begin
+        shell = Shell.new(faces)
+        @shells << shell
+      rescue => exception
+        puts exception
+      end
+      
+      return shell
     end
     
     # @param [Object] object Object
@@ -431,6 +462,10 @@ module Topolys
     
     def short_id
       @id.slice(0,6)
+    end
+    
+    def short_name
+      "#{self.class.to_s.gsub('Topolys::','')}_#{short_id}"
     end
     
     def debug(str)

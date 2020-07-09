@@ -402,10 +402,11 @@ RSpec.describe Topolys do
     face2 = model.get_face(wire2, [])
     face3 = model.get_face(wire3, [])
     
-    # TODO: implement
+    shell = model.get_shell([face1])
+    expect(shell).not_to be_nil
     
-    #shell = model.get_shell([face1])
-    #expect(shell).not_to be_nil
+    model.save_graphviz('shell.dot')
+    system('dot shell.dot -Tpdf -o shell.pdf')
 
     #shell = model.get_shell([face1, face2])
     #expect(shell).not_to be_nil
