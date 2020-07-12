@@ -23,6 +23,10 @@ module Topolys
       @z = z
     end
     
+    def to_s
+      "[#{@x}, #{@y}, #{@z}]"
+    end
+    
     ##
     # Adds a 3D vector to self
     #
@@ -71,6 +75,10 @@ module Topolys
       @x = x
       @y = y
       @z = z
+    end
+    
+    def to_s
+      "[#{@x}, #{@y}, #{@z}]"
     end
     
     def Vector3D.x_axis
@@ -250,6 +258,10 @@ module Topolys
       @b = @normal.y
       @c = @normal.z
       @d = -(@a*@point.x + @b*@point.y + @c*@point.z)
+    end
+    
+    def to_s
+      "[#{@a}, #{@b}, #{@c}, #{@d}]"
     end
     
     ##

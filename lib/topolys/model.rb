@@ -53,7 +53,7 @@ module Topolys
   class Model
     attr_reader :vertices, :edges, :directed_edges, :wires, :faces, :shells, :cells
     attr_reader :tol, :tol2
-    
+
     def initialize(tol=nil)
       
       # changing tolerance on a model after construction would be very complicated
@@ -71,6 +71,28 @@ module Topolys
       @faces = []
       @shells = []
       @cells = []
+    end
+    
+    def all_objects 
+      @vertices + @edges + @directed_edges + @wires + @faces + @shells + @cells
+    end
+    
+    def to_graphviz
+      result = "digraph model {\n"
+      result += "  rankdir=LR\n"
+      all_objects.each do |obj|
+        obj.children.each { |child| result += "  #{child.short_name} -> #{obj.short_name}\n" }
+        #obj.parents.each { |parent| result += "  #{parent.short_name} -> #{obj.short_name}\n" }
+      end
+      result += " }"
+      
+      return result
+    end
+    
+    def save_graphviz(file)
+      File.open(file, 'w') do |file|
+        file.puts to_graphviz
+      end
     end
     
     # @param [Vertex] vertex
@@ -197,8 +219,14 @@ module Topolys
         end
       end
       
-      wire = Wire.new(directed_edges)
-      @wires << wire
+      wire = nil
+      begin
+        wire = Wire.new(directed_edges)
+        @wires << wire
+      rescue => exception
+        puts exception
+      end
+      
       return wire
     end
     
@@ -218,14 +246,50 @@ module Topolys
         end
       end
 
+      # all the wires have to be in the model
       return nil if @wires.index{|w| w.id == outer.id}.nil?
       holes.each do |hole|
         return nil if @wires.index{|w| w.id == outer.id}.nil?
       end
       
-      face = Face.new(outer, holes)
-      @faces << face
+      face = nil
+      begin
+        face = Face.new(outer, holes)
+        @faces << face
+      rescue => exception
+        puts exception
+      end
+      
       return face
+    end
+    
+    # @param [Array] faces Array of Face
+    # @return [Shell] Returns Shell or nil if faces are not in model or not connected
+    def get_shell(faces)
+      
+      # all the faces have to be in the model
+      faces.each do |face|
+        return nil if @faces.index{|f| f.id == face.id}.nil?
+      end
+      
+      # check if we already have this shell
+      face_ids = faces.map{|f| f.id}.sort 
+      @shells.each do |shell|
+        if shell.faces.map{|f| f.id}.sort == face_ids
+          return shell
+        end
+      end
+      
+      # create a new shell
+      shell = nil
+      begin
+        shell = Shell.new(faces)
+        @shells << shell
+      rescue => exception
+        puts exception
+      end
+      
+      return shell
     end
     
     # @param [Object] object Object
@@ -246,6 +310,9 @@ module Topolys
           reverse_holes << get_wire(hole.vertices.reverse)
         end
         return get_face(reverse_outer, reverse_holes)
+      elsif object.is_a?(Shell)
+        # can't reverse a shell
+        return nil
       end
       
       return nil
@@ -297,7 +364,8 @@ module Topolys
       new_edge = get_edge(new_vertex, v1)
       
       # update the directed edges referencing this edge
-      edge.parents.each do |directed_edge|
+      parents = edge.parents.dup
+      parents.each do |directed_edge|
         split_directed_edge(directed_edge, new_edge)
       end
     end
@@ -310,21 +378,24 @@ module Topolys
     # @param [Edge] new_edge New edge
     def split_directed_edge(directed_edge, new_edge)
     
-      # directed edge is pointing to the new updated edge but need to recalculate
-      # its cached parameters
+      # directed edge is pointing to the new updated edge
       directed_edge.recalculate
       
       # make a new directed edge for the new edge
+      offset = nil
       new_directed_edge = nil
       if directed_edge.inverted
+        offset = 0
         new_directed_edge = get_directed_edge(new_edge.v1, new_edge.v0)
       else
+        offset = 1
         new_directed_edge = get_directed_edge(new_edge.v0, new_edge.v1)
       end
-
+      
       # update the wires referencing this directed edge
-      directed_edge.parents.each do |wire|
-        split_wire(wire, directed_edge, new_directed_edge)
+      parents = directed_edge.parents.dup
+      parents.each do |wire|
+        split_wire(wire, directed_edge, offset, new_directed_edge)
       end
     end
 
@@ -333,17 +404,16 @@ module Topolys
     #
     # @param [Wire] wire Existing wire
     # @param [DirectedEdge] directed_edge Existing directed edge
+    # @param [Integer] offset 0 to insert new_directed_edge edge before directed_edge, 1 to insert after
     # @param [DirectedEdge] directed_edge New directed edge to insert
-    def split_wire(wire, directed_edge, new_directed_edge)
+    def split_wire(wire, directed_edge, offset, new_directed_edge)
       
       directed_edges = wire.directed_edges
       
       index = directed_edges.index{|de| de.id == directed_edge.id}
       return nil if !index
-    
-      directed_edges.insert(index + 1, new_directed_edge)
       
-      new_directed_edge.link(wire)
+      directed_edges.insert(index + offset, new_directed_edge)
       
       # simulate friend access to set directed_edges on wire
       wire.instance_variable_set(:@directed_edges, directed_edges) 
@@ -365,41 +435,120 @@ module Topolys
                                #      "attribute[:crack] = :sliding
                                # e.g. LCA $ element type
                                #      "attribute[$lca] = :parapet"
-                              
+                               
+    # @return [String] Unique string id                 
     attr_reader :id
     
+    # @return [Array] Array of parent Objects
     attr_reader :parents
-
+    
+    # @return [Array] Array of child Objects
+    attr_reader :children
+    
+    ##
+    # Initialize the object with read only attributes.
+    # If read only attributes are changed externally, must call recalculate.
+    #
     def initialize
       @attributes = {}
       @id = SecureRandom.uuid
       @parents = []
+      @children = []
     end
     
+    ##
+    # Must be called when read only attributes are updated externally.
+    # Recalculates cached attribute values and links children with parents.
+    # Throws if a class invariant is violated.
+    #
+    def recalculate
+    end
+    
+    # @return [String] Unique string id
     def hash
       @id
     end
     
+    def short_id
+      @id.slice(0,6)
+    end
+    
+    def short_name
+      "#{self.class.to_s.gsub('Topolys::','').gsub('DirectedEdge', 'DEdge')}_#{short_id}"
+    end
+    
+    def debug(str)
+      #puts "#{str}#{self.class} #{short_id} has [#{@parents.map{|p| p.short_id}.join(', ')}] parents and [#{@children.map{|c| c.short_id}.join(', ')}] children"
+    end
+    
+    # @return [Class] Class of Parent objects
     def parent_class
       NilClass
+    end
+    
+    # @return [Class] Class of Child objects
+    def child_class
+      NilClass
+    end
+    
+    ##
+    # Links a parent with a child object
+    #
+    # @param [Object] parent A parent object to link
+    # @param [Object] child A child object to link
+    def Object.link(parent, child)
+      child.link_parent(parent)
+      parent.link_child(child)
+    end
+    
+    ##
+    # Unlinks a parent from a child object
+    #
+    # @param [Object] parent A parent object to unlink
+    # @param [Object] child A child object to unlink
+    def Object.unlink(parent, child)
+      child.unlink_parent(parent)
+      parent.unlink_child(child)
     end
     
     ##
     # Links a parent object
     #
-    # @param [Object] object An object to link
-    def link(object)
+    # @param [Object] object A parent object to link
+    def link_parent(object)
+      #puts "link parent #{object.short_id} with child #{self.short_id}"
       if object && object.is_a?(parent_class)
         @parents << object if !@parents.find {|obj| obj.id == object.id }
       end
     end
 
     ##
-    # Unlinks a object object
+    # Unlinks a parent object
     #
-    # @param [Object] object An object to unlink
-    def unlink(object)
+    # @param [Object] object A parent object to unlink
+    def unlink_parent(object)
+      #puts "unlink parent #{object.short_id} from child #{self.short_id}"
       @parents.reject!{ |obj| obj.id == object.id }
+    end
+    
+    ##
+    # Links a child object
+    #
+    # @param [Object] object A child object to link
+    def link_child(object)
+      #puts "link child #{object.short_id} with parent #{self.short_id}"
+      if object && object.is_a?(child_class)
+        @children << object if !@children.find {|obj| obj.id == object.id }
+      end
+    end
+
+    ##
+    # Unlinks a child object
+    #
+    # @param [Object] object A child object to unlink
+    def unlink_child(object)
+      #puts "unlink child #{object.short_id} from parent #{self.short_id}"
+      @children.reject!{ |obj| obj.id == object.id }
     end
     
   end # Object
@@ -418,13 +567,20 @@ module Topolys
     def initialize(point)
       super()
       @point = point
+      
+      recalculate
     end
     
     def recalculate
+      super()
     end
     
     def parent_class
       Edge
+    end
+    
+    def child_class
+      NilClass
     end
     
     def edges
@@ -434,6 +590,7 @@ module Topolys
   end # Vertex
 
   class Edge < Object
+  
     # @return [Vertex] the initial vertex, the edge origin
     attr_reader :v0
 
@@ -453,26 +610,40 @@ module Topolys
     # @param [Vertex] v1 The terminal Vertex
     def initialize(v0, v1)
       super()
-      
-      # should catch if 'origin' or 'terminal' not P3D objects ...
-      # should also catch if 'origin' or 'terminal' refer to same object
-      # ... or are within tol of each other
       @v0 = v0
       @v1 = v1
-
-      @v0.link(self)
-      @v1.link(self)
       
       recalculate
     end
     
     def recalculate
+      super()
+    
+      # TODO: should catch if 'origin' or 'terminal' are not Vertex objects
+      # TODO: should also catch if 'origin' or 'terminal' refer to same object or are within tol of each other
+      
+      debug("before: ")
+      
+      # unlink from any previous vertices
+      @children.reverse_each {|child| Object.unlink(self, child)}
+      
+      # link to current vertices
+      Object.link(self, @v0)
+      Object.link(self, @v1)
+      
+      debug("after: ")
+      
+      # recompute cached properties and check invariants
       vector = @v1.point - @v0.point
       @length = vector.magnitude
     end
     
     def parent_class
       DirectedEdge
+    end
+    
+    def child_class
+      Vertex
     end
     
     def forward_edge
@@ -482,7 +653,15 @@ module Topolys
     def reverse_edge
       @parents.first{|de| de.inverted}
     end
-
+    
+    def directed_edges
+      @parents
+    end
+    
+    def vertices
+      @children
+    end
+    
   end # Edge
   
   class DirectedEdge < Object
@@ -516,13 +695,25 @@ module Topolys
       super()
       @edge = edge
       @inverted = inverted
-      @edge.link(self)
       
       recalculate
     end
     
     def recalculate
-      if inverted
+      super()
+      
+      debug("before: ")
+      
+      # unlink from any previous edges
+      @children.reverse_each {|child| Object.unlink(self, child)}
+      
+      # link with current edge
+      Object.link(self, @edge)
+      
+      debug("after: ")
+      
+      # recompute cached properties and check invariants
+      if @inverted
         @v0 = edge.v1
         @v1 = edge.v0
       else
@@ -536,6 +727,18 @@ module Topolys
     
     def parent_class
       Wire
+    end
+    
+    def child_class
+      Edge
+    end
+    
+    def wires
+      @parents
+    end
+    
+    def edges
+      @children
     end
     
   end # DirectedEdge
@@ -561,19 +764,25 @@ module Topolys
     def initialize(directed_edges) 
       super()
       @directed_edges = directed_edges
-      
-      raise "Empty edges" if @directed_edges.empty?
-      raise "Not sequential" if !sequential?
-      raise "Not closed" if !closed?
 
-      @directed_edges.each do |de|
-        de.link(self)
-      end
-      
       recalculate
     end
     
     def recalculate
+      super()
+      
+      # unlink from any previous directed edges
+      @children.reverse_each {|child| Object.unlink(self, child)}
+      
+      # link with current directed edges
+      @directed_edges.each {|de| Object.link(self, de)}
+
+      # recompute cached properties and check invariants
+      
+      raise "Empty edges" if @directed_edges.empty?
+      raise "Not sequential" if !sequential?
+      raise "Not closed" if !closed?
+      
       @normal = nil
       largest = 0
       @directed_edges.each_index do |i|
@@ -599,6 +808,20 @@ module Topolys
     
     def parent_class
       Face
+    end
+    
+    def child_class
+      DirectedEdge
+    end
+    
+    def faces
+      @parents
+    end
+    
+    ##
+    # @return [Array] Array of Edge
+    def edges
+      @directed_edges.map {|de| de.edge}
     end
     
     ##
@@ -713,7 +936,17 @@ module Topolys
     end
     
     def recalculate
-    
+      super()
+      
+      # unlink from any previous wires
+      @children.reverse_each {|child| Object.unlink(self, child)}
+      
+      # link with current wires
+      Object.link(self, outer)
+      @holes.each {|hole| Object.link(self, hole)}
+
+      # recompute cached properties and check invariants
+      
       # check that holes have opposite normal from outer
       normal = @outer.normal
       @holes.each do |hole|
@@ -733,9 +966,147 @@ module Topolys
     end
     
     def parent_class
-      NilClass
+      Shell
+    end
+    
+    def child_class
+      Wire
+    end
+    
+    def shells
+      @parents
+    end
+    
+    def wires
+      @children
+    end
+    
+    def shared_outer_edges(other)
+      return nil unless other.is_a?(Face)
+      
+      result = []
+      @outer.directed_edges.each do |de|
+        other.outer.directed_edges.each do |other_de|
+          # next if de.id == other.de
+          result << de.edge if de.edge.id == other_de.edge.id
+        end
+      end
+    
+      return result
     end
     
   end # Face
+  
+  class Shell < Object
+  
+    # @return [Array] Array of Face
+    attr_reader :faces
+    
+    # @return [Array] Array of all edges
+    attr_reader :all_edges
+    
+    # @return [Array] Array of shared edges
+    attr_reader :shared_edges
+    
+    # @return [Matrix] Matrix of level 1 connections
+    attr_reader :connection_matrix
+    
+    ##
+    # Initializes a Shell object
+    #
+    # Throws if faces are not connected
+    #
+    # @param [Array] faces Array of Face
+    def initialize(faces)
+      super()
+      @faces = faces
+      @all_edges = []
+      @shared_edges = []
+      @connection_matrix = Matrix.identity(faces.size)
+
+      recalculate
+    end
+    
+    def recalculate
+      
+      # unlink from any previous faces
+      @children.reverse_each {|child| Object.unlink(self, child)}
+      
+      # link with current faces
+      @faces.each {|face| Object.link(self, face)}
+
+      # recompute cached properties and check invariants
+      n = @faces.size
+      
+      # can't have duplicate faces
+      face_ids = @faces.map{|face| face.id}.uniq.sort
+      raise "Duplicate faces in shell" if face_ids.size != n
+      
+      @all_edges = []
+      @shared_edges = []      
+      @connection_matrix = Matrix.identity(faces.size)
+      (0...n).each do |i|
+        @all_edges.concat(@faces[i].outer.edges)
+        (i+1...n).each do |j|
+          shared_edges = @faces[i].shared_outer_edges(@faces[j])
+          #puts "#{i}, #{j}, [#{shared_edges.map{|e| e.short_name}.join(', ')}]"
+          @shared_edges.concat(shared_edges)
+          if !shared_edges.empty?
+            @connection_matrix[i,j] = @connection_matrix[j,i] = 1
+          end
+        end
+      end
+      @shared_edges.uniq! {|e| e.id}
+      @shared_edges.sort_by! {|e| e.id}
+      @all_edges.uniq! {|e| e.id}
+      @all_edges.sort_by! {|e| e.id}
+      
+      temp_last = @connection_matrix
+      temp = normalize_connection_matrix(temp_last * @connection_matrix)
+      i = 0
+      while temp_last != temp
+        temp_last = temp
+        temp = normalize_connection_matrix(temp * @connection_matrix)
+        i += 1
+        break if i > 100
+      end
+      
+      # check that every face is connected to every other faces
+      temp.each {|connection| raise "Faces not connected" if connection == 0}
+
+    end
+    
+    def normalize_connection_matrix(m)
+      n = faces.size
+      result = Matrix.identity(n)
+      (0...n).each do |i|
+        (i+1...n).each do |j|
+          result[i,j] = result[j,i] = (m[i,j] > 0 ? 1 : 0)
+        end
+      end
+      return result
+    end
+    
+    ##
+    # Checks if faces form a closed Shell
+    #
+    # @return [Bool] Returns true if closed
+    def closed?
+      return @all_edges == @shared_edges
+    end
+    
+    def parent_class
+      NilClass
+    end
+    
+    def child_class
+      Face
+    end
+
+    def faces
+      @children
+    end
+    
+  end # Shell
   
 end # TOPOLYS

@@ -30,3 +30,7 @@ runner.conf
 
 # .DS_Store (Mac)
 *.DS_Store
+
+# graphviz files
+/*.dot
+/*.pdf

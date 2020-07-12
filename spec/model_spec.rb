@@ -379,6 +379,66 @@ RSpec.describe Topolys do
     expect(reverse_de1.v0.point.z).to eq(0) 
     
   end
+
+  it "has a Shell class" do
   
+    model = Topolys::Model.new
+    
+    width = 1
+    height = 3
+    points1 = make_rectangle(width, height)
+    points2 = move_points(points1, Topolys::Vector3D.new(1,0,0))
+    points3 = move_points(points1, Topolys::Vector3D.new(2,0,0))
+    
+    vertices1 = model.get_vertices(points1)
+    vertices2 = model.get_vertices(points2)
+    vertices3 = model.get_vertices(points3)
+    
+    wire1 = model.get_wire(vertices1)
+    wire2 = model.get_wire(vertices2)
+    wire3 = model.get_wire(vertices3)
+    
+    face1 = model.get_face(wire1, [])
+    face2 = model.get_face(wire2, [])
+    face3 = model.get_face(wire3, [])
+    
+    shell = model.get_shell([face1])
+    expect(shell).not_to be_nil
+    expect(model.shells.size).to eq(1)
+    
+    shell = model.get_shell([face1, face2])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face2, face1])
+    expect(shell).not_to be_nil    
+    expect(model.shells.size).to eq(2)
+    
+    shell = model.get_shell([face1, face3])
+    expect(shell).to be_nil
+    shell = model.get_shell([face3, face1])
+    expect(shell).to be_nil    
+    expect(model.shells.size).to eq(2)
+    
+    shell = model.get_shell([face1, face3, face2])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face1, face2, face3])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face2, face1, face3])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face2, face3, face1])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face3, face2, face1])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face3, face1, face2])
+    expect(shell).not_to be_nil
+    expect(model.shells.size).to eq(3)
+    
+    shell = model.get_shell([face1, face1, face2])
+    expect(shell).to be_nil  
+    expect(model.shells.size).to eq(3)
+    
+    # install graphviz and make sure dot is in the path
+    model.save_graphviz('shell.dot')
+    system('dot shell.dot -Tpdf -o shell.pdf')
+  end
   
 end # Topolys
