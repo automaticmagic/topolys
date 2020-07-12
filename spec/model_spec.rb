@@ -404,19 +404,41 @@ RSpec.describe Topolys do
     
     shell = model.get_shell([face1])
     expect(shell).not_to be_nil
+    expect(model.shells.size).to eq(1)
+    
+    shell = model.get_shell([face1, face2])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face2, face1])
+    expect(shell).not_to be_nil    
+    expect(model.shells.size).to eq(2)
+    
+    shell = model.get_shell([face1, face3])
+    expect(shell).to be_nil
+    shell = model.get_shell([face3, face1])
+    expect(shell).to be_nil    
+    expect(model.shells.size).to eq(2)
+    
+    shell = model.get_shell([face1, face3, face2])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face1, face2, face3])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face2, face1, face3])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face2, face3, face1])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face3, face2, face1])
+    expect(shell).not_to be_nil
+    shell = model.get_shell([face3, face1, face2])
+    expect(shell).not_to be_nil
+    expect(model.shells.size).to eq(3)
+    
+    shell = model.get_shell([face1, face1, face2])
+    expect(shell).to be_nil  
+    expect(model.shells.size).to eq(3)
     
     # install graphviz and make sure dot is in the path
     model.save_graphviz('shell.dot')
     system('dot shell.dot -Tpdf -o shell.pdf')
-
-    #shell = model.get_shell([face1, face2])
-    #expect(shell).not_to be_nil
-  
-    #shell = model.get_shell([face1, face3])
-    #expect(shell).to be_nil  
-    
-    #shell = model.get_shell([face1, face3, face2])
-    #expect(shell).not_to be_nil  
   end
   
 end # Topolys

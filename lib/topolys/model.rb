@@ -53,7 +53,7 @@ module Topolys
   class Model
     attr_reader :vertices, :edges, :directed_edges, :wires, :faces, :shells, :cells
     attr_reader :tol, :tol2
-    
+
     def initialize(tol=nil)
       
       # changing tolerance on a model after construction would be very complicated
@@ -272,6 +272,15 @@ module Topolys
         return nil if @faces.index{|f| f.id == face.id}.nil?
       end
       
+      # check if we already have this shell
+      face_ids = faces.map{|f| f.id}.sort 
+      @shells.each do |shell|
+        if shell.faces.map{|f| f.id}.sort == face_ids
+          return shell
+        end
+      end
+      
+      # create a new shell
       shell = nil
       begin
         shell = Shell.new(faces)
@@ -810,6 +819,12 @@ module Topolys
     end
     
     ##
+    # @return [Array] Array of Edge
+    def edges
+      @directed_edges.map {|de| de.edge}
+    end
+    
+    ##
     # @return [Array] Array of Vertex
     def vertices
       @directed_edges.map {|de| de.v0}
@@ -966,12 +981,35 @@ module Topolys
       @children
     end
     
+    def shared_outer_edges(other)
+      return nil unless other.is_a?(Face)
+      
+      result = []
+      @outer.directed_edges.each do |de|
+        other.outer.directed_edges.each do |other_de|
+          # next if de.id == other.de
+          result << de.edge if de.edge.id == other_de.edge.id
+        end
+      end
+    
+      return result
+    end
+    
   end # Face
   
   class Shell < Object
   
     # @return [Array] Array of Face
     attr_reader :faces
+    
+    # @return [Array] Array of all edges
+    attr_reader :all_edges
+    
+    # @return [Array] Array of shared edges
+    attr_reader :shared_edges
+    
+    # @return [Matrix] Matrix of level 1 connections
+    attr_reader :connection_matrix
     
     ##
     # Initializes a Shell object
@@ -982,6 +1020,9 @@ module Topolys
     def initialize(faces)
       super()
       @faces = faces
+      @all_edges = []
+      @shared_edges = []
+      @connection_matrix = Matrix.identity(faces.size)
 
       recalculate
     end
@@ -995,8 +1036,55 @@ module Topolys
       @faces.each {|face| Object.link(self, face)}
 
       # recompute cached properties and check invariants
+      n = @faces.size
       
-      # TODO: check that faces are connected
+      # can't have duplicate faces
+      face_ids = @faces.map{|face| face.id}.uniq.sort
+      raise "Duplicate faces in shell" if face_ids.size != n
+      
+      @all_edges = []
+      @shared_edges = []      
+      @connection_matrix = Matrix.identity(faces.size)
+      (0...n).each do |i|
+        @all_edges.concat(@faces[i].outer.edges)
+        (i+1...n).each do |j|
+          shared_edges = @faces[i].shared_outer_edges(@faces[j])
+          #puts "#{i}, #{j}, [#{shared_edges.map{|e| e.short_name}.join(', ')}]"
+          @shared_edges.concat(shared_edges)
+          if !shared_edges.empty?
+            @connection_matrix[i,j] = @connection_matrix[j,i] = 1
+          end
+        end
+      end
+      @shared_edges.uniq! {|e| e.id}
+      @shared_edges.sort_by! {|e| e.id}
+      @all_edges.uniq! {|e| e.id}
+      @all_edges.sort_by! {|e| e.id}
+      
+      temp_last = @connection_matrix
+      temp = normalize_connection_matrix(temp_last * @connection_matrix)
+      i = 0
+      while temp_last != temp
+        temp_last = temp
+        temp = normalize_connection_matrix(temp * @connection_matrix)
+        i += 1
+        break if i > 100
+      end
+      
+      # check that every face is connected to every other faces
+      temp.each {|connection| raise "Faces not connected" if connection == 0}
+
+    end
+    
+    def normalize_connection_matrix(m)
+      n = faces.size
+      result = Matrix.identity(n)
+      (0...n).each do |i|
+        (i+1...n).each do |j|
+          result[i,j] = result[j,i] = (m[i,j] > 0 ? 1 : 0)
+        end
+      end
+      return result
     end
     
     ##
@@ -1004,7 +1092,7 @@ module Topolys
     #
     # @return [Bool] Returns true if closed
     def closed?
-      return false
+      return @all_edges == @shared_edges
     end
     
     def parent_class
