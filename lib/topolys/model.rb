@@ -1002,13 +1002,16 @@ module Topolys
     # @return [Array] Array of Face
     attr_reader :faces
     
-    # @return [Array] Array of all edges
+    # @return [Array] Array of all edges from outer faces
     attr_reader :all_edges
     
-    # @return [Array] Array of shared edges
+    # @return [Array] Array of shared edges from outer faces
     attr_reader :shared_edges
     
-    # @return [Matrix] Matrix of level 1 connections
+    # @return [Hash] Map edges to array of outer faces
+    attr_reader :edge_to_face_map
+    
+    # @return [Matrix] Matrix of level 1 face to face connections
     attr_reader :connection_matrix
     
     ##
@@ -1022,6 +1025,7 @@ module Topolys
       @faces = faces
       @all_edges = []
       @shared_edges = []
+      @edge_to_face_map = {}
       @connection_matrix = Matrix.identity(faces.size)
 
       recalculate
@@ -1043,10 +1047,19 @@ module Topolys
       raise "Duplicate faces in shell" if face_ids.size != n
       
       @all_edges = []
-      @shared_edges = []      
+      @shared_edges = []    
+      @edge_to_face_map = {}      
       @connection_matrix = Matrix.identity(faces.size)
       (0...n).each do |i|
-        @all_edges.concat(@faces[i].outer.edges)
+      
+        # populate edge_to_face_map and all_edges
+        @faces[i].outer.edges.each do |edge|
+          @edge_to_face_map[edge.id] = [] if @edge_to_face_map[edge.id].nil?
+          @edge_to_face_map[edge.id] << @faces[i]
+          @all_edges << edge
+        end
+        
+        # loop over other edges
         (i+1...n).each do |j|
           shared_edges = @faces[i].shared_outer_edges(@faces[j])
           #puts "#{i}, #{j}, [#{shared_edges.map{|e| e.short_name}.join(', ')}]"
@@ -1072,7 +1085,7 @@ module Topolys
       end
       
       # check that every face is connected to every other faces
-      temp.each {|connection| raise "Faces not connected" if connection == 0}
+      temp.each {|connection| raise "Faces not connected in shell" if connection == 0}
 
     end
     
@@ -1092,6 +1105,10 @@ module Topolys
     #
     # @return [Bool] Returns true if closed
     def closed?
+      @edge_to_face_map.each_value do |faces|
+        return false if faces.size != 2
+      end
+      
       return @all_edges == @shared_edges
     end
     
