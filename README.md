@@ -34,7 +34,7 @@ To test ... bundle exec rspec spec
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/rd2Bourgeois/topolys.
+Bug reports and pull requests are welcome on GitHub at https://github.com/rd2/topolys.
 
 ## License
 
