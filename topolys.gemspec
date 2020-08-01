@@ -6,12 +6,12 @@ require "topolys/version"
 Gem::Specification.new do |spec|
   spec.name          = "topolys"
   spec.version       = Topolys::VERSION
-  spec.authors       = ["Denis Bourgeois & Dan Macumber"]
-  spec.email         = ["denis@rd2.ca"]
+  spec.authors       = ["Dan Macumber & Denis Bourgeois"]
+  spec.email         = ["dan@automaticmagic.com"]
 
   spec.summary       = ""
   spec.description   = ""
-  spec.homepage      = "https://github.com/rd2Bourgeois/topolys.git"
+  spec.homepage      = "https://github.com/macumber/topolys.git"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the " \
@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
    # spec.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
 
     spec.metadata["homepage_uri"] = spec.homepage
-    spec.metadata["source_code_uri"] = "https://github.com/rd2Bourgeois/topolys/tree/v#{spec.version}"
+    spec.metadata["source_code_uri"] = "https://github.com/macumber/topolys/tree/v#{spec.version}"
     #spec.metadata["changelog_uri"] = "TODO: Put your gem's CHANGELOG.md URL here."
   #else
     #raise "RubyGems 2.0 or newer is required to protect against " \
