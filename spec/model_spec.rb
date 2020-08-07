@@ -1,5 +1,6 @@
 require 'topolys'
 require 'geometry_helpers'
+require "json-schema"
 
 RSpec.describe Topolys do
 
@@ -439,9 +440,30 @@ RSpec.describe Topolys do
     expect(shell).to be_nil  
     expect(model.shells.size).to eq(3)
     
+    ##########################################
+    # move to a serialization test
+
     # install graphviz and make sure dot is in the path
     model.save_graphviz('shell.dot')
     system('dot shell.dot -Tpdf -o shell.pdf')
+
+    model.save("shell.json")
+    s = model.to_s
+    obj = JSON.parse(s, symbolize_names: true)
+    model2 = Topolys::Model.from_json(obj)
+    model2.save("shell2.json")
+    schema = Topolys::Model.schema
+
+    valid = JSON::Validator.validate(schema, s)
+    expect(valid).to be true
+
+    expect(model2.vertices.size).to eq(model.vertices.size)
+    expect(model2.edges.size).to eq(model.edges.size)
+    expect(model2.directed_edges.size).to eq(model.directed_edges.size)
+    expect(model2.wires.size).to eq(model.wires.size)
+    expect(model2.faces.size).to eq(model.faces.size)
+    expect(model2.shells.size).to eq(model.shells.size)
+    
   end
   
 end # Topolys
