@@ -34,3 +34,4 @@ runner.conf
 # graphviz files
 /*.dot
 /*.pdf
+/*.json
