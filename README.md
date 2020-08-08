@@ -1,40 +1,32 @@
 # Topolys
 
-(revise) To experiment with that code, ... run `bin/console` for an interactive prompt.
+Topolys is a Ruby gem based on the rigorous non-manifold topology class hierarchy used in the [Topologic](https://topologic.app/software/) project. This class hierarchy is well suited to the topology of zero thickness space boundaries commonly used in energy modeling as well as other applications.  The Topolys gem is agnostic to specific applications, a separate repository [TopolysMeasures](https://github.com/automaticmagic/TopolysMeasures).  Linking Topolys  with OpenStudio has the potential to provide improved surface intersection and matching, checks if spaces are fully enclosed, or other new functionality. 
 
-## Description
+## Documentation
 
-TODO ...
+Topolys is very new and does not yet have formal user documentation.  A set of initial design documents are available at https://github.com/automaticmagic/topolys/tree/master/design
 
 ## Installation
 
 (revise) Add this line to your application's Gemfile:
 
 ```ruby
-gem 'topolys'
+gem 'topolys', github: 'automaticmagic/topolys', branch: 'master'
 ```
 
 And then execute:
 
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install topolys
-
-## Usage
-
-To test ... bundle exec rspec spec 
+    $ bundle update
 
 ## Development
 
-(revise) After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+To run unit tests:
 
-(revise) To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+    bundle exec rake
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/macumber/topolys.
+Bug reports and pull requests are welcome on GitHub at https://github.com/automaticmagic/topolys.
 
 ## License
 
