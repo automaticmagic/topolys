@@ -216,11 +216,11 @@ RSpec.describe Topolys do
     v4 = model.get_vertex(Topolys::Point3D.new(4,0,0))
 
     edge = model.get_edge(v1,v3)
-    expect(model.vertex_intersect_edge?(v0, edge)).to eq(false)
-    expect(model.vertex_intersect_edge?(v1, edge)).to eq(false)
-    expect(model.vertex_intersect_edge?(v2, edge)).to eq(true)
-    expect(model.vertex_intersect_edge?(v3, edge)).to eq(false)
-    expect(model.vertex_intersect_edge?(v4, edge)).to eq(false)
+    expect(model.vertex_intersect_edge(v0, edge)).to be_nil
+    expect(model.vertex_intersect_edge(v1, edge)).to be_nil
+    expect(model.vertex_intersect_edge(v2, edge)).not_to be_nil
+    expect(model.vertex_intersect_edge(v3, edge)).to be_nil
+    expect(model.vertex_intersect_edge(v4, edge)).to be_nil
 
   end
 
@@ -284,7 +284,7 @@ RSpec.describe Topolys do
     ]
 
     tests.each_index do |i|
-      puts "test #{i}"
+      #puts "test #{i}"
       test = tests[i]
       model = Topolys::Model.new(tol)
       v1 = model.get_vertex(p1)
