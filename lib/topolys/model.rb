@@ -223,24 +223,11 @@ module Topolys
     # @param [Edge] edge
     # @return [Point3D] Point3D of vertex projected on edge or nil
     def vertex_intersect_edge(vertex, edge)
-      return nil if vertex.id == edge.v0.id || vertex.id == edge.v1.id
-
-      vector1 = (edge.v1.point - edge.v0.point)
-      vector1.normalize!
-
-      vector2 = (vertex.point - edge.v0.point)
-
-      length = vector1.dot(vector2)
-      if length < 0 || length > edge.length
+      if vertex.id == edge.v0.id || vertex.id == edge.v1.id
         return nil
       end
 
-      new_point = edge.v0.point + (vector1*length)
-
-      distance = (vertex.point - new_point).magnitude
-      if distance > @tol
-        return nil
-      end
+      new_point, length = project_point_on_edge(edge.v0.point, edge.v1.point, vertex.point)
 
       return new_point
     end
@@ -309,10 +296,36 @@ module Topolys
 
       @vertices << v0 if !@vertices.find {|v| v.id == v0.id}
       @vertices << v1 if !@vertices.find {|v| v.id == v1.id}
+
       edge = Edge.new(v0, v1)
       @edges << edge
       return edge
     end
+
+    def random_stuff
+
+      # check if any vertices need to be inserted on this edge
+      vertices_to_add = []
+      @vertices.each do |vertex|
+        new_point, length = project_point_on_edge(v0.point, v1.point, vertex.point)
+        if new_point
+          vertices_to_add << {vertex: vertex, new_point: new_point, length: length}
+        end
+      end
+
+      vertices_to_add.sort! { |x, y| x[:length] <=> y[:length] }
+
+      if vertices_to_add.size > 2
+        puts "vertices_to_add #{vertices_to_add.size}"
+      end
+
+      edge = nil
+      (0...vertices_to_add.size-1).each do |i|
+        v0 = vertices_to_add[i][:vertex]
+        v1 = vertices_to_add[i+1][:vertex]
+      end
+    end
+
 
     # @param [Vertex] v0
     # @param [Vertex] v1
@@ -467,6 +480,33 @@ module Topolys
     def self.set_id(obj, id)
       # simulate friend access to set id on object
       obj.instance_variable_set(:@id, id)
+    end
+
+    # @param [Point3D] p0 Point3D at beginning of edge
+    # @param [Point3D] p1 Point3D at end of edge
+    # @param [Point3D] p Point3D to project onto edge
+    # @return [Point3D] new point projected onto edge or nil
+    # @return [Numeric] length of new point projected along edge or nil
+    def project_point_on_edge(p0, p1, p)
+      vector1 = (p1 - p0)
+      edge_length = vector1.magnitude
+      vector1.normalize!
+
+      vector2 = (p - p0)
+
+      length = vector1.dot(vector2)
+      if length < 0 || length > edge_length
+        return nil, nil
+      end
+
+      new_point = p0 + (vector1*length)
+
+      distance = (p - new_point).magnitude
+      if distance > @tol
+        return nil, nil
+      end
+
+      return new_point, length
     end
 
     ##
