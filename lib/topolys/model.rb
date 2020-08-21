@@ -302,31 +302,6 @@ module Topolys
       return edge
     end
 
-    def random_stuff
-
-      # check if any vertices need to be inserted on this edge
-      vertices_to_add = []
-      @vertices.each do |vertex|
-        new_point, length = project_point_on_edge(v0.point, v1.point, vertex.point)
-        if new_point
-          vertices_to_add << {vertex: vertex, new_point: new_point, length: length}
-        end
-      end
-
-      vertices_to_add.sort! { |x, y| x[:length] <=> y[:length] }
-
-      if vertices_to_add.size > 2
-        puts "vertices_to_add #{vertices_to_add.size}"
-      end
-
-      edge = nil
-      (0...vertices_to_add.size-1).each do |i|
-        v0 = vertices_to_add[i][:vertex]
-        v1 = vertices_to_add[i+1][:vertex]
-      end
-    end
-
-
     # @param [Vertex] v0
     # @param [Vertex] v1
     # @return [DirectedEdge] DirectedEdge
@@ -357,6 +332,9 @@ module Topolys
     def get_wire(vertices)
       # search for wire and return if exists
       # otherwise create new wire
+
+      # insert any existing model vertices that should be inserted on the edges in vertices
+      vertices = insert_vertices_on_edges(vertices)
 
       n = vertices.size
       directed_edges = []
@@ -480,6 +458,73 @@ module Topolys
     def self.set_id(obj, id)
       # simulate friend access to set id on object
       obj.instance_variable_set(:@id, id)
+    end
+
+    ##
+    # Inserts existing model vertices that should be included in vertices
+    #
+    # @param [Array] Array of original vertices
+    # @return [Array] Array with inserted model vertices
+    def insert_vertices_on_edges(vertices)
+
+      bb = BoundingBox.new
+      ids = Set.new
+      vertices.each do |vertex|
+        bb.add_point(vertex.point)
+        ids.add(vertex.id)
+      end
+
+      # find vertices that might be inserted
+      vertices_to_check = []
+      @vertices.each do |vertex|
+        next if ids.include?(vertex.id)
+
+        if bb.include?(vertex.point)
+          vertices_to_check << vertex
+        end
+      end
+
+      # temporarily close vertices
+      vertices << vertices[0]
+
+      # check if any vertices need to be inserted on this edge
+      new_vertices = []
+      (0...vertices.size-1).each do |i|
+        v_this = vertices[i]
+        v_next = vertices[i+1]
+
+        new_vertices << v_this
+
+        vertices_to_add = []
+        vertices_to_check.each do |vertex|
+          new_point, length = project_point_on_edge(v_this.point, v_next.point, vertex.point)
+          if new_point
+            vertices_to_add << {vertex: vertex, new_point: new_point, length: length}
+          end
+        end
+
+        vertices_to_add.sort! { |x, y| x[:length] <=> y[:length] }
+
+        vertices_to_add.each { |vs| new_vertices << vs[:vertex] }
+      end
+
+      new_vertices << vertices[-1]
+
+      # pop the last vertex
+      vertices.pop
+      new_vertices.pop
+
+      # DLM: it's possible that inserting the vertices on the edge would make the face non-planar
+      # but if we move the vertices that could break other surfaces
+
+      #if vertices.size != new_vertices.size
+      #  puts "old vertices"
+      #  puts vertices.map {|v| v.point.to_s }
+      #  puts "new vertices"
+      #  puts new_vertices.map {|v| v.point.to_s }
+      #end
+
+      return new_vertices
     end
 
     # @param [Point3D] p0 Point3D at beginning of edge
