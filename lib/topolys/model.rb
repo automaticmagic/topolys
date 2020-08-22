@@ -33,7 +33,7 @@ module Topolys
 
   ## Tolerance for normal vector checks
   def Topolys.normal_tol
-    @@planar_tol
+    @@normal_tol
   end
 
   ## Tolerance for planarity checks
@@ -1153,6 +1153,23 @@ module Topolys
       @plane.normal
     end
 
+    ##
+    # Gets shared edges with another wire
+    #
+    # @return [Array] Returns array of shared edges
+    def shared_edges(other)
+      return nil unless other.is_a?(Wire)
+
+      result = []
+      @directed_edges.each do |de|
+        other.directed_edges.each do |other_de|
+          result << de.edge if de.edge.id == other_de.edge.id
+        end
+      end
+
+      return result
+    end
+
   end # Wire
 
   class Face < Object
@@ -1200,7 +1217,7 @@ module Topolys
       # check that holes have opposite normal from outer
       normal = @outer.normal
       @holes.each do |hole|
-        raise "Hole does not have correct winding" if hole.normal.dot(normal) > -1 + Topolys.normal_tol
+        raise "Hole does not have correct winding" if hole.normal.dot(normal) < 1 - Topolys.normal_tol
       end
 
       # check that holes are on same plane as outer
