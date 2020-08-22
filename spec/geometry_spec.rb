@@ -281,4 +281,40 @@ RSpec.describe Topolys do
     expect(bb.include?(Topolys::Point3D.new(-1, 2, 0.5))).to be false
 
   end
+
+  it "can create a face with holes" do
+
+    model = Topolys::Model.new
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 0, 3.048))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 0, 0))
+    vertices << model.get_vertex(Topolys::Point3D.new(3.048, 0, 0))
+    vertices << model.get_vertex(Topolys::Point3D.new(3.048, 0, 3.048))
+    outer = model.get_wire(vertices)
+    expect(model.vertices.size).to eq(4)
+    expect(outer.vertices.size).to eq(4)
+    expect(outer.normal.dot(Topolys::Vector3D.new(0,-1,0))).to be >= 1 - Topolys.normal_tol
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0.865, 0, 1.670))
+    vertices << model.get_vertex(Topolys::Point3D.new(0.865, 0, 0))
+    vertices << model.get_vertex(Topolys::Point3D.new(1.898, 0, 0))
+    vertices << model.get_vertex(Topolys::Point3D.new(1.898, 0, 1.670))
+    hole = model.get_wire(vertices)
+    expect(model.vertices.size).to eq(8)
+    expect(outer.vertices.size).to eq(6)
+    expect(hole.vertices.size).to eq(4)
+    expect(outer.normal.dot(Topolys::Vector3D.new(0,-1,0))).to be >= 1 - Topolys.normal_tol
+    expect(hole.normal.dot(Topolys::Vector3D.new(0,-1,0))).to be >= 1 - Topolys.normal_tol
+
+    face = model.get_face(outer, [hole])
+    expect(model.vertices.size).to eq(8)
+    expect(outer.vertices.size).to eq(6)
+    expect(hole.vertices.size).to eq(4)
+    expect(outer.normal.dot(Topolys::Vector3D.new(0,-1,0))).to be >= 1 - Topolys.normal_tol
+    expect(hole.normal.dot(Topolys::Vector3D.new(0,-1,0))).to be >= 1 - Topolys.normal_tol
+
+  end
+
 end # Topolys

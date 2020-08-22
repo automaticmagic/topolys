@@ -6,6 +6,7 @@ end
 
 require 'json'
 require 'securerandom'
+require 'set'
 
 # Topology represents connections between geometry in a model.
 #
@@ -468,7 +469,7 @@ module Topolys
     def insert_vertices_on_edges(vertices)
 
       bb = BoundingBox.new
-      ids = Set.new
+      ids = ::Set.new
       vertices.each do |vertex|
         bb.add_point(vertex.point)
         ids.add(vertex.id)
@@ -1028,8 +1029,8 @@ module Topolys
 
       @normal = nil
       largest = 0
-      @directed_edges.each_index do |i|
-        temp = @directed_edges[0].vector.cross(@directed_edges[i].vector)
+      (0...@directed_edges.size-1).each do |i|
+        temp = @directed_edges[i].vector.cross(@directed_edges[i+1].vector)
         if temp.magnitude > largest
           largest = temp.magnitude
           @normal = temp
@@ -1214,10 +1215,10 @@ module Topolys
 
       # recompute cached properties and check invariants
 
-      # check that holes have opposite normal from outer
+      # check that holes have same normal as outer
       normal = @outer.normal
       @holes.each do |hole|
-        raise "Hole does not have correct winding" if hole.normal.dot(normal) < 1 - Topolys.normal_tol
+        raise "Hole does not have correct winding, #{hole.normal.dot(normal)}" if hole.normal.dot(normal) < 1 - Topolys.normal_tol
       end
 
       # check that holes are on same plane as outer
