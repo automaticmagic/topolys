@@ -4,7 +4,7 @@ require "json-schema"
 
 RSpec.describe Topolys do
 
-  it "can build model for case 1" do
+  it "can build model for face order case 1" do
 
     model = Topolys::Model.new
 
@@ -63,7 +63,7 @@ RSpec.describe Topolys do
     expect(edges_2_3[0].length).to eq(10)
   end
 
-  it "can build model for case 2" do
+  it "can build model for face order case 2" do
 
     model = Topolys::Model.new
 
@@ -122,7 +122,7 @@ RSpec.describe Topolys do
     expect(edges_2_3[0].length).to eq(10)
   end
 
-  it "can build model for case 3" do
+  it "can build model for face order case 3" do
 
     model = Topolys::Model.new
 
@@ -181,7 +181,7 @@ RSpec.describe Topolys do
     expect(edges_2_3[0].length).to eq(10)
   end
 
-  it "can build model for case 4" do
+  it "can build model for face order case 4" do
 
     model = Topolys::Model.new
 
