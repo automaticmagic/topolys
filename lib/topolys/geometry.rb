@@ -226,7 +226,10 @@ module Topolys
       return nil unless other.is_a?(Topolys::Vector3D)
       prod = magnitude * other.magnitude
       return nil if prod.zero?
-      Math.acos(dot(other) / prod)
+      val = dot(other) / prod
+      val = [-1.0, val].max
+      val = [ val, 1.0].min
+      Math.acos(val)
     end
 
   end # Vector3D
