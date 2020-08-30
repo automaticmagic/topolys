@@ -245,16 +245,21 @@ module Topolys
       @vertices << v
 
       # check if this vertex needs to be inserted on any edge
+      updated = false
       @edges.each do |edge|
         if new_point = vertex_intersect_edge(v, edge)
 
-          # simulate friend access to set point on vertex
-          v.instance_variable_set(:@point, new_point)
-          v.recalculate
+          # point might need to be added to multiple edges
+          # point can be updated to project it onto edge, don't update multiple times
+          if !updated
+            # simulate friend access to set point on vertex
+            v.instance_variable_set(:@point, new_point)
+            v.recalculate
+            updated = true
+          end
 
           # now split the edge with this vertex
           split_edge(edge, v)
-          break
         end
       end
 
@@ -319,7 +324,6 @@ module Topolys
           return e
         end
       end
-
       return nil
     end
 
@@ -328,14 +332,10 @@ module Topolys
     # @return [DirectedEdge] DirectedEdge
     def get_directed_edge(v0, v1)
       # search for directed edge and return if it exists
+      de = find_existing_directed_edge(v0, v1)
+      return de if de
+
       # otherwise create new directed edge
-
-      @directed_edges.each do |de|
-        if (de.v0.id == v0.id) && (de.v1.id == v1.id)
-          return de
-        end
-      end
-
       edge = get_edge(v0, v1)
 
       inverted = false
@@ -346,6 +346,19 @@ module Topolys
       directed_edge = DirectedEdge.new(edge, inverted)
       @directed_edges << directed_edge
       return directed_edge
+    end
+
+    # @param [Vertex] v0
+    # @param [Vertex] v1
+    # @return [DirectedEdge] DirectedEdge
+    def find_existing_directed_edge(v0, v1)
+      # search for directed edge and return if it exists
+      @directed_edges.each do |de|
+        if (de.v0.id == v0.id) && (de.v1.id == v1.id)
+          return de
+        end
+      end
+      return nil
     end
 
     # @param [Array] vertices Array of Vertex, assumes closed wire (e.g. first vertex is also last vertex)
