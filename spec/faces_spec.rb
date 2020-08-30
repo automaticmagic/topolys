@@ -240,4 +240,122 @@ RSpec.describe Topolys do
     expect(shared_edges[0].length).to eq(5)
   end
 
+  it "can build model for faces case 5" do
+
+    model = Topolys::Model.new
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 5))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 5))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 0))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 0))
+    wire1 = model.get_wire(vertices)
+    face1 = model.get_face(wire1, [])
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 0, 4))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 5, 4))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 5, 1))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 0, 1))
+    wire2 = model.get_wire(vertices)
+    face2 = model.get_face(wire2, [])
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 1))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 1))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 0))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 0))
+    wire3 = model.get_wire(vertices)
+    face3 = model.get_face(wire3, [])
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 5))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 5))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 4))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 4))
+    wire4 = model.get_wire(vertices)
+    face4 = model.get_face(wire4, [])
+
+    shared_edges = face1.shared_outer_edges(face2)
+    expect(shared_edges.size).to eq(0)
+
+    shared_edges = face1.shared_outer_edges(face3)
+    expect(shared_edges.size).to eq(3)
+    expect(shared_edges[0].length + shared_edges[1].length + shared_edges[2].length).to eq(5)
+
+    shared_edges = face1.shared_outer_edges(face4)
+    expect(shared_edges.size).to eq(3)
+    expect(shared_edges[0].length + shared_edges[1].length + shared_edges[2].length).to eq(5)
+
+    shared_edges = face2.shared_outer_edges(face3)
+    expect(shared_edges.size).to eq(1)
+    expect(shared_edges[0].length).to eq(3)
+
+    shared_edges = face2.shared_outer_edges(face4)
+    expect(shared_edges.size).to eq(1)
+    expect(shared_edges[0].length).to eq(3)
+
+    shared_edges = face3.shared_outer_edges(face4)
+    expect(shared_edges.size).to eq(0)
+  end
+
+  it "can build model for faces case 5 - reverse" do
+
+    model = Topolys::Model.new
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 5))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 5))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 4))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 4))
+    wire4 = model.get_wire(vertices)
+    face4 = model.get_face(wire4, [])
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 1))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 1))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 0))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 0))
+    wire3 = model.get_wire(vertices)
+    face3 = model.get_face(wire3, [])
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 0, 4))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 5, 4))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 5, 1))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 0, 1))
+    wire2 = model.get_wire(vertices)
+    face2 = model.get_face(wire2, [])
+
+    vertices = []
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 5))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 5))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 1, 0))
+    vertices << model.get_vertex(Topolys::Point3D.new(0, 4, 0))
+    wire1 = model.get_wire(vertices)
+    face1 = model.get_face(wire1, [])
+
+    shared_edges = face1.shared_outer_edges(face2)
+    expect(shared_edges.size).to eq(0)
+
+    shared_edges = face1.shared_outer_edges(face3)
+    expect(shared_edges.size).to eq(3)
+    expect(shared_edges[0].length + shared_edges[1].length + shared_edges[2].length).to eq(5)
+
+    shared_edges = face1.shared_outer_edges(face4)
+    expect(shared_edges.size).to eq(3)
+    expect(shared_edges[0].length + shared_edges[1].length + shared_edges[2].length).to eq(5)
+
+    shared_edges = face2.shared_outer_edges(face3)
+    expect(shared_edges.size).to eq(1)
+    expect(shared_edges[0].length).to eq(3)
+
+    shared_edges = face2.shared_outer_edges(face4)
+    expect(shared_edges.size).to eq(1)
+    expect(shared_edges[0].length).to eq(3)
+
+    shared_edges = face3.shared_outer_edges(face4)
+    expect(shared_edges.size).to eq(0)
+  end
+
 end # Topolys
