@@ -317,7 +317,8 @@ module Topolys
 
     attr_reader :minx, :maxx, :miny, :maxy, :minz, :maxz
 
-    def initialize
+    def initialize(tol = 0.001)
+      @tol = tol
       @minx = Float::INFINITY
       @miny = Float::INFINITY
       @minz = Float::INFINITY
@@ -336,9 +337,9 @@ module Topolys
     end
 
     def include?(point)
-      result = ((point.x >= @minx) && (point.x <= @maxx)) &&
-               ((point.y >= @miny) && (point.y <= @maxy)) &&
-               ((point.z >= @minz) && (point.z <= @maxz))
+      result = ((point.x >= @minx - @tol) && (point.x <= @maxx + @tol)) &&
+               ((point.y >= @miny - @tol) && (point.y <= @maxy + @tol)) &&
+               ((point.z >= @minz - @tol) && (point.z <= @maxz + @tol))
       return result
     end
 
