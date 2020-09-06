@@ -1,6 +1,6 @@
 # Topolys
 
-Topolys is a Ruby gem based on the rigorous non-manifold topology class hierarchy used in the [Topologic](https://topologic.app/software/) project. This class hierarchy is well suited to the topology of zero thickness space boundaries commonly used in energy modeling as well as other applications.  The Topolys gem is agnostic to specific applications. A separate repository, [TopolysMeasures](https://github.com/automaticmagic/TopolysMeasures), linking Topolys  with OpenStudio has the potential to provide improved surface intersection and matching, checks if spaces are fully enclosed, or other new functionality. 
+Topolys is a Ruby gem based on the rigorous non-manifold topology class hierarchy used in the [Topologic](https://github.com/NonManifoldTopology/Topologic) project. More information about Topologic is available on the [Topologic website](https://topologic.app). This class hierarchy is well suited to the topology of zero thickness space boundaries commonly used in energy modeling as well as other applications.  The Topolys gem is agnostic to specific applications. A separate repository, [TopolysMeasures](https://github.com/automaticmagic/TopolysMeasures), linking Topolys  with OpenStudio has the potential to provide improved surface intersection and matching, checks if spaces are fully enclosed, or other new functionality.
 
 ## Documentation
 
