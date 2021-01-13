@@ -36,7 +36,7 @@ Gem::Specification.new do |spec|
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
-  
+
   if /^2.2/.match(RUBY_VERSION)
     spec.required_ruby_version = "~> 2.2.0"
 
@@ -47,6 +47,8 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "rspec",   "~> 3.7.0"
     spec.add_development_dependency "rubocop", "~> 0.54.0"
     spec.add_development_dependency "yard",    "~> 0.9"
+    spec.add_development_dependency "parallel","~> 1.19.2"
+
   else
     spec.add_development_dependency "public_suffix", "~> 3.1.1"
     spec.add_development_dependency "json-schema", "~> 2.7.0"
