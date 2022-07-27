@@ -19,6 +19,7 @@ jobs:
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby }}
+        bundler: default
     - name: Run Tests
       run: |
         bundle update

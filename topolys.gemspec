@@ -41,7 +41,7 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "public_suffix", "~> 3.1.1"
   spec.add_development_dependency "json-schema", "~> 2.7.0"
-  spec.add_development_dependency "bundler", "~> 2.3"
+  spec.add_development_dependency "bundler", "~> 2.1"
   spec.add_development_dependency "rake",    "~> 13.0"
   spec.add_development_dependency "rspec",   "~> 3.11"
   spec.add_development_dependency "rubocop", "~> 0.54.0"
