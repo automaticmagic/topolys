@@ -1,6 +1,5 @@
 require 'topolys'
 require 'geometry_helpers'
-require "json-schema"
 
 # test geometry for this model taken from https://github.com/rd2/tbd under MIT license
 def scrigno_surfaces
