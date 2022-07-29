@@ -1,6 +1,6 @@
 require 'topolys'
 require 'geometry_helpers'
-require "json-schema"
+require 'json-schema'
 
 RSpec.describe Topolys do
 
